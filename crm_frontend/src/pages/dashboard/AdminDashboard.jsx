@@ -61,7 +61,7 @@ export default function AdminDashboard({ user }) {
           <div className="flex flex-wrap gap-2 shrink-0">
             <button
               onClick={() => navigate("/accounts")}
-              className="flex items-center gap-2 rounded-xl bg-white text-primary-700 px-3.5 py-2.5 text-sm font-semibold transition-colors hover:bg-primary-50"
+              className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-400 px-3.5 py-2.5 text-sm font-semibold transition-colors hover:bg-primary-50 dark:hover:bg-slate-700"
             >
               <UserPlus size={15} /> Create Account
             </button>
@@ -100,13 +100,13 @@ export default function AdminDashboard({ user }) {
             <button
               key={c.label}
               onClick={() => navigate(c.to)}
-              className="flex items-center gap-3 rounded-xl border border-slate-100 px-4 py-3 text-left hover:border-primary-200 hover:bg-primary-50/50 transition-colors"
+              className="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-slate-700/50 px-4 py-3 text-left hover:border-primary-200 dark:hover:border-primary-500/30 hover:bg-primary-50/50 dark:hover:bg-primary-500/10 transition-colors"
             >
-              <span className="h-9 w-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+              <span className="h-9 w-9 rounded-lg bg-primary-50 dark:bg-slate-800 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
                 <c.icon size={16} />
               </span>
-              <span className="text-sm font-medium text-slate-700">{c.label}</span>
-              <ArrowRight size={14} className="ml-auto text-slate-300" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{c.label}</span>
+              <ArrowRight size={14} className="ml-auto text-slate-300 dark:text-slate-500" />
             </button>
           ))}
         </div>
@@ -135,12 +135,12 @@ export default function AdminDashboard({ user }) {
           ) : salesTeam.length === 0 ? (
             <p className="text-sm text-slate-400 py-6 text-center">No BD/Sales accounts yet. Create one to get started.</p>
           ) : (
-            <div className="flex flex-col divide-y divide-slate-50">
+            <div className="flex flex-col divide-y divide-slate-50 dark:divide-slate-700/50">
               {salesTeam.map((s) => (
                 <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <Avatar name={s.name} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">{s.name}</p>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{s.name}</p>
                     <p className="text-xs text-slate-400 truncate">{s.designation || "BD / Sales"}</p>
                   </div>
                   <Badge tone={s.status === "Inactive" ? "red" : "green"}>{s.status || "Active"}</Badge>
@@ -164,12 +164,12 @@ export default function AdminDashboard({ user }) {
           ) : supportTeam.length === 0 ? (
             <p className="text-sm text-slate-400 py-6 text-center">No Project accounts yet. Create one to get started.</p>
           ) : (
-            <div className="flex flex-col divide-y divide-slate-50">
+            <div className="flex flex-col divide-y divide-slate-50 dark:divide-slate-700/50">
               {supportTeam.map((s) => (
                 <div key={s.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
                   <Avatar name={s.name} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">{s.name}</p>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{s.name}</p>
                     <p className="text-xs text-slate-400 truncate">{s.designation || "Project Manager"}</p>
                   </div>
                   <Badge tone={s.status === "Inactive" ? "red" : "green"}>{s.status || "Active"}</Badge>
@@ -181,11 +181,11 @@ export default function AdminDashboard({ user }) {
       </div>
 
       <Card className="flex items-center gap-4">
-        <span className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <span className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
           <ShieldCheck size={18} />
         </span>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-slate-800">{users.length} total team accounts</p>
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{users.length} total team accounts</p>
           <p className="text-xs text-slate-400">Across Admin, BD/Sales, Marketing, Project and Finance roles</p>
         </div>
         <Button variant="outline" onClick={() => navigate("/accounts")}>Manage Accounts</Button>

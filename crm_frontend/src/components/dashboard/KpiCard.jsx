@@ -27,9 +27,9 @@ export default function KpiCard({ icon: Icon, title, value, change, positive = t
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-slate-800 mt-3.5">{value}</p>
-      <p className="text-sm font-medium text-slate-500 mt-0.5">{title}</p>
-      {description && <p className="text-xs text-slate-400 mt-1.5">{description}</p>}
+      <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-3.5">{value}</p>
+      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-0.5">{title}</p>
+      {description && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">{description}</p>}
     </Card>
   );
 }
