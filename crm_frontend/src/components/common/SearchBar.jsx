@@ -9,7 +9,7 @@ export function SearchBar({ value, onChange, placeholder = "Search...", classNam
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm placeholder:text-slate-400 focus:border-primary-400 focus-ring"
+        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-8 py-2.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary-400 focus-ring"
       />
       {value && (
         <button
@@ -28,7 +28,7 @@ export function FilterSelect({ value, onChange, options, label }) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-slate-200 bg-white pl-3 pr-8 py-2.5 text-sm text-slate-600 focus:border-primary-400 focus-ring cursor-pointer"
+      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 py-2.5 text-sm text-slate-600 dark:text-slate-300 focus:border-primary-400 focus-ring cursor-pointer"
     >
       <option value="">{label}</option>
       {options.map((o) => (
@@ -45,7 +45,7 @@ export function FilterButton({ active, children, ...props }) {
     <button
       className={classNames(
         "inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-medium transition focus-ring",
-        active ? "border-primary-300 bg-primary-50 text-primary-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+        active ? "border-primary-300 dark:border-primary-500/30 bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
       )}
       {...props}
     >
