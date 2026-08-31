@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, Search, Bell, ChevronDown, LogOut, User, Settings as SettingsIcon } from "lucide-react";
+import { Menu, Search, Bell, ChevronDown, LogOut, User, Settings as SettingsIcon, Moon, Sun } from "lucide-react";
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { Avatar } from "../common";
 import { notifications as mockNotifications } from "../../services/mockData";
 import { ROLE_LABELS } from "../../constants/roles";
@@ -11,6 +12,7 @@ import { classNames } from "../../utils/format";
 export default function Navbar() {
   const { openDrawer } = useUI();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -28,11 +30,11 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="h-16 shrink-0 border-b border-slate-100 bg-white/90 backdrop-blur px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30">
+    <header className="h-16 shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <button
           onClick={openDrawer}
-          className="lg:hidden p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 focus-ring"
+          className="lg:hidden p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 focus-ring"
         >
           <Menu size={20} />
         </button>
@@ -40,16 +42,24 @@ export default function Navbar() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             placeholder="Search leads, clients, projects..."
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm placeholder:text-slate-400 focus:bg-white focus:border-primary-400 focus-ring"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 pl-9 pr-4 py-2 text-sm placeholder:text-slate-400 text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:border-primary-400 focus-ring"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 focus-ring"
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? <Moon size={19} /> : <Sun size={19} />}
+        </button>
+
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotifOpen((o) => !o)}
-            className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 focus-ring"
+            className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 focus-ring"
           >
             <Bell size={19} />
             {unread > 0 && (
@@ -59,9 +69,9 @@ export default function Navbar() {
             )}
           </button>
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white rounded-2xl border border-slate-100 shadow-popover animate-slideUp overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-800">Notifications</p>
+            <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-popover animate-slideUp overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Notifications</p>
                 <span className="text-xs text-primary-600 font-medium">{unread} new</span>
               </div>
               <div className="max-h-80 overflow-y-auto">
@@ -89,25 +99,25 @@ export default function Navbar() {
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => setProfileOpen((o) => !o)}
-            className="flex items-center gap-2 rounded-lg pl-1 pr-2 py-1 hover:bg-slate-100 focus-ring"
+            className="flex items-center gap-2 rounded-lg pl-1 pr-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 focus-ring"
           >
             <Avatar name={user?.name} size="sm" />
             <div className="hidden md:block text-left leading-tight">
-              <p className="text-xs font-semibold text-slate-700">{user?.name}</p>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{user?.name}</p>
               <p className="text-[11px] text-slate-400">{ROLE_LABELS[user?.role]}</p>
             </div>
             <ChevronDown size={14} className="text-slate-400 hidden md:block" />
           </button>
           {profileOpen && (
-            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-slate-100 shadow-popover animate-slideUp overflow-hidden py-1.5">
-              <button onClick={() => { setProfileOpen(false); navigate("/profile"); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+            <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-popover animate-slideUp overflow-hidden py-1.5">
+              <button onClick={() => { setProfileOpen(false); navigate("/profile"); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
                 <User size={15} /> My Profile
               </button>
-              <button onClick={() => { setProfileOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+              <button onClick={() => { setProfileOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
                 <SettingsIcon size={15} /> Settings
               </button>
-              <div className="h-px bg-slate-100 my-1.5" />
-              <button onClick={logout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">
+              <div className="h-px bg-slate-100 dark:bg-slate-700 my-1.5" />
+              <button onClick={logout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                 <LogOut size={15} /> Log out
               </button>
             </div>
