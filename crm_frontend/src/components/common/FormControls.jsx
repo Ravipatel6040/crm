@@ -1,18 +1,18 @@
 import { classNames } from "../../utils/format";
 
 const baseField =
-  "w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-primary-400 focus-ring";
+  "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition focus:border-primary-400 focus-ring";
 
 export function Field({ label, required, error, hint, children, className = "" }) {
   return (
     <div className={classNames("flex flex-col gap-1.5", className)}>
       {label && (
-        <label className="text-xs font-medium text-slate-600">
+        <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       {children}
-      {hint && !error && <span className="text-xs text-slate-400">{hint}</span>}
+      {hint && !error && <span className="text-xs text-slate-400 dark:text-slate-500">{hint}</span>}
       {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   );

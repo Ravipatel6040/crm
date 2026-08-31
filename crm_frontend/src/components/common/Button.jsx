@@ -3,11 +3,11 @@ import { classNames } from "../../utils/format";
 
 const variants = {
   primary: "bg-primary-500 text-white hover:bg-primary-600 shadow-sm shadow-primary-500/20",
-  secondary: "bg-primary-50 text-primary-700 hover:bg-primary-100",
-  outline: "border border-slate-200 text-slate-700 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100",
+  secondary: "bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20",
+  outline: "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800",
+  ghost: "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
   danger: "bg-red-500 text-white hover:bg-red-600",
-  white: "bg-white text-primary-700 border border-primary-100 hover:bg-primary-50",
+  white: "bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-400 border border-primary-100 dark:border-slate-700 hover:bg-primary-50 dark:hover:bg-slate-700",
 };
 
 const sizes = {
