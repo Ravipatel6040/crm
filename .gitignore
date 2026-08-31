@@ -1,0 +1,8 @@
+# Ignore learning guide files so they aren't pushed to GitHub
+DOCKER_LEARNING_GUIDE.md
+*.md
+
+# Ignore environment variables so sensitive data isn't leaked
+.env
+.env.*
+!.env.example

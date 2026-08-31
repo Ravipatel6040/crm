@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./crm_backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./crm_backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build: ./crm_frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
