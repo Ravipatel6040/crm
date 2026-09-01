@@ -152,6 +152,7 @@ export default function Leads() {
         onClose={() => { setModalOpen(false); setEditing(null); }}
         onSave={handleSave}
         initial={editing}
+        users={users}
       />
 
       <ConfirmDialog

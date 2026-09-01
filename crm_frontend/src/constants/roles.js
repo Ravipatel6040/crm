@@ -19,26 +19,20 @@ export const ROLE_LABELS = {
 // Accounts / create BD-Sales, Marketing, Project & Finance logins) which
 // is intentionally left out of every other role's list below.
 export const ROLE_ACCESS = {
-  [ROLES.ADMIN]: ["*"],
+  [ROLES.ADMIN]: [
+    "dashboard", "leads", "clients", "projects", "tasks", "marketing", "finance", "reports", "team", "settings", "audit_logs"
+  ],
   [ROLES.SALES]: [
-    "dashboard", "leads", "pipeline", "clients", "communication",
-    "documents", "notifications", "activity", "reports", "profile", "settings",
-    "products", "services",
+    "dashboard", "my_leads", "follow_ups", "calls", "proposals", "clients", "reports"
   ],
   [ROLES.MARKETING]: [
-    "dashboard", "campaigns", "lead-sources", "marketing-analytics", "leads",
-    "documents", "notifications", "activity", "reports", "profile", "settings",
-    "products", "services",
+    "dashboard", "campaigns", "leads", "lead_sources", "content", "analytics", "reports"
   ],
   [ROLES.PROJECT_MANAGER]: [
-    "dashboard", "projects", "clients", "communication",
-    "documents", "notifications", "activity", "reports", "profile", "settings",
-    "products", "services",
+    "dashboard", "clients", "projects", "tasks", "milestones", "requirements", "reports"
   ],
   [ROLES.FINANCE]: [
-    "dashboard", "payments", "clients", "projects", "reports",
-    "documents", "notifications", "activity", "profile", "settings",
-    "products", "services",
+    "dashboard", "invoices", "payments", "expenses", "revenue", "reports"
   ],
 };
 

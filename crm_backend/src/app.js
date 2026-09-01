@@ -26,6 +26,7 @@ import { adminRoutes } from "./routes/admin.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { leadRoutes } from "./routes/lead.routes.js";
+import { dashboardRoutes } from "./routes/dashboard.routes.js";
 
 // Home
 app.get("/", (req, res) => res.json({ msg: "CRM API is running 🚀" }));
@@ -34,8 +35,8 @@ app.get("/", (req, res) => res.json({ msg: "CRM API is running 🚀" }));
 app.use("/api/v1/admin", adminRoutes);
 // General user routes
 app.use("/api/v1/users", userRoutes);
-
 app.use("/api/v1/leads", leadRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 
 

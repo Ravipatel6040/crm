@@ -5,7 +5,7 @@ import { ROLES, ROLE_LABELS } from "../../constants/roles";
 const CREATABLE_ROLES = [ROLES.SALES, ROLES.MARKETING, ROLES.PROJECT_MANAGER, ROLES.FINANCE];
 
 const emptyUser = {
-  name: "", email: "", phone: "", designation: "", role: ROLES.SALES, status: "Active", password: "",
+  name: "", email: "", phone: "", designation: "", role: ROLES.SALES, status: "ACTIVE", password: "",
 };
 
 export default function UserFormModal({ open, onClose, onSave, initial, saving }) {
@@ -67,8 +67,9 @@ export default function UserFormModal({ open, onClose, onSave, initial, saving }
         </Field>
         <Field label="Status">
           <Select value={form.status} onChange={(e) => set("status", e.target.value)}>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="SUSPENDED">Suspended</option>
           </Select>
         </Field>
         {!initial && (

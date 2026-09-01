@@ -298,6 +298,22 @@ export const apiSlice = createApi({
       query: () => ({ url: "/dashboard/summary", method: "GET" }),
       providesTags: ["Dashboard"],
     }),
+    getSalesDashboardSummary: builder.query({
+      query: () => ({ url: "/dashboard/sales-summary", method: "GET" }),
+      providesTags: ["Dashboard"],
+    }),
+    getMarketingDashboardSummary: builder.query({
+      query: () => ({ url: "/dashboard/marketing-summary", method: "GET" }),
+      providesTags: ["Dashboard"],
+    }),
+    getProjectDashboardSummary: builder.query({
+      query: () => ({ url: "/dashboard/project-summary", method: "GET" }),
+      providesTags: ["Dashboard"],
+    }),
+    getFinanceDashboardSummary: builder.query({
+      query: () => ({ url: "/dashboard/finance-summary", method: "GET" }),
+      providesTags: ["Dashboard"],
+    }),
     getRevenueOverview: builder.query({
       query: () => ({ url: "/dashboard/revenue-overview", method: "GET" }),
       providesTags: ["Dashboard"],
@@ -390,7 +406,7 @@ export const {
   useGetDocumentsQuery, useUploadDocumentMutation, useDeleteDocumentMutation,
   useGetNotificationsQuery, useGetUnreadNotificationCountQuery, useMarkNotificationReadMutation, useMarkAllNotificationsReadMutation,
   useGetActivityLogsQuery,
-  useGetDashboardSummaryQuery, useGetRevenueOverviewQuery, useGetPipelineSummaryQuery, useGetLeadSourcesSummaryQuery,
+  useGetDashboardSummaryQuery, useGetSalesDashboardSummaryQuery, useGetMarketingDashboardSummaryQuery, useGetProjectDashboardSummaryQuery, useGetFinanceDashboardSummaryQuery, useGetRevenueOverviewQuery, useGetPipelineSummaryQuery, useGetLeadSourcesSummaryQuery,
   useGetSalesReportQuery, useGetMarketingReportQuery, useGetProjectsReportQuery, useGetFinancialReportQuery,
   useGetProductsQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation,
   useGetServicesQuery, useCreateServiceMutation, useUpdateServiceMutation, useDeleteServiceMutation,

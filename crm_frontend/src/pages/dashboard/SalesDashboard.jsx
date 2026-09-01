@@ -1,31 +1,44 @@
-import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users, UserPlus, Handshake, Trophy, ArrowRight, Sparkles, Plus, PhoneCall, Briefcase,
+  Users, Trophy, PhoneCall, Handshake, Target, ArrowRight, Sparkles, Plus, Clock, FileText, CheckCircle2, XCircle, TrendingUp
 } from "lucide-react";
-import { PipelineChart } from "../../components/dashboard/Charts";
+import { PipelineChart, LeadSourceChart, RevenueChart } from "../../components/dashboard/Charts";
 import KpiCard from "../../components/dashboard/KpiCard";
-import { Card, Badge, Avatar, LoadingState, EmptyState } from "../../components/common";
+import { Card, Badge, Avatar, Button, LoadingState, EmptyState } from "../../components/common";
 import { ROLE_LABELS } from "../../constants/roles";
-import { formatDate } from "../../utils/format";
-import { useGetLeadsQuery, useGetClientsQuery, useGetPipelineSummaryQuery } from "../../store/api/apiSlice";
+import { formatCompactCurrency, formatDate } from "../../utils/format";
+import {
+  useGetSalesDashboardSummaryQuery, useGetRevenueOverviewQuery, useGetLeadSourcesSummaryQuery
+} from "../../store/api/apiSlice";
+import { useMemo } from "react";
 
 export default function SalesDashboard({ user }) {
   const navigate = useNavigate();
-  const { data: leadsData, isLoading: loadingLeads } = useGetLeadsQuery();
-  const { data: clientsData, isLoading: loadingClients } = useGetClientsQuery();
-  const { data: pipelineData } = useGetPipelineSummaryQuery();
+  const { data: summaryWrapper, isLoading: loadingSummary } = useGetSalesDashboardSummaryQuery();
+  const { data: revenueWrapper } = useGetRevenueOverviewQuery(); // Mock monthly sales
+  const { data: leadSourceWrapper } = useGetLeadSourcesSummaryQuery();
 
-  const leads = leadsData?.data ?? leadsData ?? [];
-  const clients = clientsData?.data ?? clientsData ?? [];
-
-  const myLeads = useMemo(() => leads.filter((l) => l.assignedTo === user?.id), [leads, user]);
-  const followUps = useMemo(() => leads.filter((l) => l.nextFollowUp && l.nextFollowUp !== "-").slice(0, 6), [leads]);
-  const wonThisMonth = leads.filter((l) => l.status === "Won").length;
-  const activeDeals = leads.filter((l) => l.status && l.status !== "Won" && l.status !== "Lost").length;
+  const summary = summaryWrapper?.data || summaryWrapper || {};
+  const leads = summary.leads || {};
+  const revenue = summary.revenue || 0;
+  const followUps = summary.followUps || [];
+  
+  const revenueData = revenueWrapper?.data || [];
+  const leadSourceData = leadSourceWrapper?.data || [];
+  
+  const pipelineSteps = [
+    { name: "New", status: "upcoming" },
+    { name: "Contacted", status: "upcoming" },
+    { name: "Qualified", status: "upcoming" },
+    { name: "Follow-up", status: "upcoming" },
+    { name: "Proposal", status: "upcoming" },
+    { name: "Negotiation", status: "upcoming" },
+    { name: "Won / Lost", status: "upcoming" }
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8 pb-10">
+      {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl bg-primary-500 px-6 sm:px-8 py-7 text-white">
         <div className="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -37,7 +50,7 @@ export default function SalesDashboard({ user }) {
               Good to see you, {user?.name?.split(" ")[0]}.
             </h1>
             <p className="text-primary-100 text-sm mt-1.5 max-w-md">
-              You have {myLeads.length} leads assigned and {followUps.length} follow-ups coming up.
+              You have {leads.total || 0} leads assigned and {followUps.length} follow-ups scheduled for today.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
@@ -51,96 +64,119 @@ export default function SalesDashboard({ user }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KpiCard icon={Users} title="Total Leads" value={leads.length} tone="primary" />
-        <KpiCard icon={Handshake} title="Active Deals" value={activeDeals} tone="amber" />
-        <KpiCard icon={Trophy} title="Won This Month" value={wonThisMonth} tone="green" />
-        <KpiCard icon={Briefcase} title="Total Customers" value={clients.length} tone="primary" />
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_1fr] gap-5">
-        <PipelineChart data={pipelineData} />
-
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-800">Follow-ups Coming Up</h3>
-            <button onClick={() => navigate("/leads")} className="text-xs font-medium text-primary-600 flex items-center gap-1 hover:underline">
-              View all leads <ArrowRight size={12} />
-            </button>
+      {loadingSummary ? (
+        <LoadingState label="Loading your sales data..." />
+      ) : (
+        <>
+          {/* Top Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <KpiCard title="My Leads" value={leads.total || 0} tone="primary" />
+            <KpiCard title="Follow-ups" value={leads.followUp || 0} tone="amber" />
+            <KpiCard title="Proposals" value={leads.proposal || 0} tone="primary" />
+            <KpiCard title="Won Deals" value={leads.won || 0} tone="green" />
+            <KpiCard title="Lost Deals" value={leads.lost || 0} tone="red" />
+            <KpiCard title="Revenue" value={formatCompactCurrency(revenue)} tone="green" />
           </div>
-          {loadingLeads ? (
-            <LoadingState label="Loading leads..." />
-          ) : followUps.length === 0 ? (
-            <EmptyState title="No follow-ups scheduled" description="Add a lead and set a follow-up date to see it here." />
-          ) : (
-            <div className="flex flex-col divide-y divide-slate-50">
-              {followUps.map((l) => (
-                <div key={l.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <Avatar name={l.name} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">{l.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{l.company}</p>
-                  </div>
-                  <Badge tone="amber">{formatDate(l.nextFollowUp)}</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-800">My Assigned Leads</h3>
-            <button onClick={() => navigate("/leads")} className="text-xs font-medium text-primary-600 flex items-center gap-1 hover:underline">
-              Manage <ArrowRight size={12} />
-            </button>
-          </div>
-          {myLeads.length === 0 ? (
-            <EmptyState icon={UserPlus} title="No leads assigned to you yet" />
-          ) : (
-            <div className="flex flex-col divide-y divide-slate-50">
-              {myLeads.slice(0, 5).map((l) => (
-                <div key={l.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <Avatar name={l.name} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">{l.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{l.company}</p>
+          {/* Lead Pipeline */}
+          <section className="flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-slate-800">Lead Pipeline</h2>
+            <Card className="p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-center w-full gap-2 overflow-x-auto">
+                {pipelineSteps.map((step, idx) => (
+                  <div key={step.name} className="flex items-center gap-2 flex-1 min-w-[100px]">
+                    <div className="flex flex-col items-center gap-2 w-full">
+                      <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs border-2 border-transparent">
+                        {idx + 1}
+                      </div>
+                      <span className="text-xs font-semibold text-slate-600 text-center">{step.name}</span>
+                    </div>
+                    {idx < pipelineSteps.length - 1 && (
+                      <ArrowRight className="text-slate-300 mx-auto hidden sm:block shrink-0" size={16} />
+                    )}
                   </div>
-                  <Badge>{l.status}</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                ))}
+              </div>
+            </Card>
+          </section>
 
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-800">Recent Customers</h3>
-            <button onClick={() => navigate("/clients")} className="text-xs font-medium text-primary-600 flex items-center gap-1 hover:underline">
-              View all <ArrowRight size={12} />
-            </button>
-          </div>
-          {loadingClients ? (
-            <LoadingState label="Loading customers..." />
-          ) : clients.length === 0 ? (
-            <EmptyState icon={Briefcase} title="No customers yet" />
-          ) : (
-            <div className="flex flex-col divide-y divide-slate-50">
-              {clients.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <Avatar name={c.company || c.name} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">{c.company || c.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{c.contactName || c.email}</p>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+            <div className="flex flex-col gap-6">
+              {/* Sales Analytics */}
+              <section className="flex flex-col gap-4">
+                <h2 className="text-lg font-bold text-slate-800">Sales Analytics</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <LeadSourceChart data={leadSourceData} />
+                  <RevenueChart data={revenueData} />
                 </div>
-              ))}
+              </section>
+
+              {/* Lead Management Grid */}
+              <section className="flex flex-col gap-4">
+                <h2 className="text-lg font-bold text-slate-800">Lead Management</h2>
+                <Card>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center divide-x divide-y divide-slate-100 [&>div]:p-4">
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                      <Plus className="text-primary-500 mb-1" size={20}/>
+                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Create Lead</a>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                      <Target className="text-primary-500 mb-1" size={20}/>
+                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Update Status</a>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                      <PhoneCall className="text-primary-500 mb-1" size={20}/>
+                      <a href="/communication" className="text-sm text-slate-700 font-medium hover:text-primary-600">Add Call History</a>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                      <Clock className="text-primary-500 mb-1" size={20}/>
+                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Schedule Meeting</a>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                      <FileText className="text-primary-500 mb-1" size={20}/>
+                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Upload Proposal</a>
+                    </div>
+                    <div className="flex flex-col gap-1 items-center justify-center">
+                      <Handshake className="text-primary-500 mb-1" size={20}/>
+                      <a href="/clients" className="text-sm text-slate-700 font-medium hover:text-primary-600">Convert to Client</a>
+                    </div>
+                  </div>
+                </Card>
+              </section>
             </div>
-          )}
-        </Card>
-      </div>
+
+            {/* Today's Follow-ups */}
+            <section className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-800">Today's Follow-ups</h2>
+              </div>
+              <Card className="h-full max-h-[600px] overflow-y-auto">
+                {followUps.length === 0 ? (
+                  <EmptyState icon={Clock} title="No follow-ups today" description="Take a breather, you're all caught up!" />
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {followUps.map((f, idx) => {
+                      const time = new Date(f.nextFollowUp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      return (
+                        <div key={idx} className="flex gap-3 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                          <div className="text-xs font-bold text-slate-400 w-16 pt-1 shrink-0">
+                            {time}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-slate-800">{f.name}</p>
+                            <p className="text-xs text-slate-500 mb-1.5">{f.company}</p>
+                            <Badge tone="primary">Follow-up</Badge>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </Card>
+            </section>
+          </div>
+        </>
+      )}
     </div>
   );
 }

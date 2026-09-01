@@ -1,8 +1,8 @@
 export const currentUser = {};
 export const users = [];
 export const leads = [];
-export const leadSources = [];
-export const pipelineStages = [];
+export const leadSources = ["Website", "Referral", "Social Media", "Cold Call", "Other"];
+export const pipelineStages = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
 export const revenueOverview = [];
 export const notifications = [];
 export const projects = [];

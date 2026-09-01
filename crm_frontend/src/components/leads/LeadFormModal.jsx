@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { Modal, Button, Field, Input, Select, Textarea } from "../../components/common";
-import { leadSources, pipelineStages, users } from "../../services/mockData";
+import { leadSources, pipelineStages } from "../../services/mockData";
+import { ROLES } from "../../constants/roles";
 
 const emptyLead = {
   name: "", company: "", phone: "", email: "", source: leadSources[0],
-  interestedIn: "", budget: "", assignedTo: users[1]?.id || "", status: pipelineStages[0],
+  interestedIn: "", budget: "", assignedTo: "", status: pipelineStages[0],
   nextFollowUp: "", notes: "",
 };
 
-export default function LeadFormModal({ open, onClose, onSave, initial }) {
+export default function LeadFormModal({ open, onClose, onSave, initial, users = [] }) {
   const [form, setForm] = useState(emptyLead);
   const [errors, setErrors] = useState({});
 
@@ -70,8 +71,9 @@ export default function LeadFormModal({ open, onClose, onSave, initial }) {
         </Field>
         <Field label="Assigned BD">
           <Select value={form.assignedTo} onChange={(e) => set("assignedTo", e.target.value)}>
-            {users.filter((u) => u.role === "sales" || u.role === "admin").map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
+            <option value="">Select an assignee...</option>
+            {users.filter((u) => u.role === ROLES.SALES || u.role === ROLES.ADMIN).map((u) => (
+              <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>
             ))}
           </Select>
         </Field>

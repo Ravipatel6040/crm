@@ -5,9 +5,34 @@ import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { Avatar } from "../common";
-import { notifications as mockNotifications } from "../../services/mockData";
-import { ROLE_LABELS } from "../../constants/roles";
+import { ROLE_LABELS, ROLES } from "../../constants/roles";
 import { classNames } from "../../utils/format";
+
+function getRoleNotifications(role) {
+  const time = "10 mins ago";
+  const defaults = [{ id: 1, title: "System Update", desc: "CRM v2.0 deployed successfully.", time, read: false }];
+  
+  if (role === ROLES.SALES) return [
+    { id: 101, title: "Follow-up due", desc: "Call with ABC Corp is due today.", time, read: false },
+    { id: 102, title: "New lead assigned", desc: "You have a new hot lead from Website.", time: "1 hr ago", read: false },
+    { id: 103, title: "Proposal accepted", desc: "Client XYZ accepted your proposal.", time: "2 hrs ago", read: true }
+  ];
+  if (role === ROLES.MARKETING) return [
+    { id: 201, title: "Campaign completed", desc: "Summer Sale campaign ended.", time, read: false },
+    { id: 202, title: "New lead generated", desc: "Facebook ad generated 15 new leads.", time: "30 mins ago", read: false }
+  ];
+  if (role === ROLES.PROJECT_MANAGER) return [
+    { id: 301, title: "Task overdue", desc: "Database migration task is overdue.", time, read: false },
+    { id: 302, title: "New requirement", desc: "Client added a new requirement.", time: "2 hrs ago", read: true },
+    { id: 303, title: "Client approval pending", desc: "Waiting for client sign-off on design.", time: "3 hrs ago", read: false }
+  ];
+  if (role === ROLES.FINANCE) return [
+    { id: 401, title: "Invoice overdue", desc: "Invoice #1024 is now 5 days overdue.", time, read: false },
+    { id: 402, title: "Payment received", desc: "₹50,000 received from Acme Corp.", time: "1 hr ago", read: false }
+  ];
+  
+  return defaults;
+}
 
 export default function Navbar() {
   const { openDrawer } = useUI();
@@ -18,7 +43,8 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
-  const unread = mockNotifications.filter((n) => !n.read).length;
+  const userNotifications = getRoleNotifications(user?.role);
+  const unread = userNotifications.filter((n) => !n.read).length;
 
   useEffect(() => {
     function onClick(e) {
@@ -75,7 +101,7 @@ export default function Navbar() {
                 <span className="text-xs text-primary-600 font-medium">{unread} new</span>
               </div>
               <div className="max-h-80 overflow-y-auto">
-                {mockNotifications.slice(0, 6).map((n) => (
+                {userNotifications.map((n) => (
                   <div key={n.id} className={classNames("px-4 py-3 border-b border-slate-50 last:border-0 flex gap-3", !n.read && "bg-primary-50/40")}>
                     <span className={classNames("mt-1.5 h-2 w-2 rounded-full shrink-0", n.read ? "bg-slate-200" : "bg-primary-500")} />
                     <div className="min-w-0">

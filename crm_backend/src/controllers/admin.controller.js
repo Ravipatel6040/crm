@@ -253,11 +253,13 @@ export const adminLogin = asyncHandler(async (req, res) => {
         {
           admin: {
             id: admin._id,
+            name: admin.name,
             email: admin.email,
             role: admin.role,
             lastLoginAt: admin.lastLoginAt,
           },
           accessToken,
+          refreshToken,
           redirectTo: getDashboard(admin.role),
         },
         "Admin login successful"
