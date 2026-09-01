@@ -44,7 +44,7 @@ export default function AdminDashboard({ user }) {
               <Sparkles size={12} /> {ROLE_LABELS[user?.role]} workspace
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
-              Welcome back, {user?.name?.split(" ")[0]}.
+              Welcome back, {(user?.name && user?.name !== "User") ? user.name.split(" ")[0] : "Admin"}.
             </h1>
             <p className="text-primary-100 text-sm mt-1.5 max-w-md">
               Manage every account, team and module in CRM Gangatara from one place.

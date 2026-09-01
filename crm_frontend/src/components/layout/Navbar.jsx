@@ -54,6 +54,11 @@ export default function Navbar() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+  const isAdmin = user?.role === ROLES.ADMIN;
+  const displayName = (user?.name && user?.name !== "User")
+    ? user.name
+    : (isAdmin ? "Admin" : (user?.name || "User"));
+  const showRoleSubtitle = !isAdmin || (user?.name && user.name !== "Admin" && user.name !== "User");
 
   return (
     <header className="h-16 shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30">
@@ -127,10 +132,12 @@ export default function Navbar() {
             onClick={() => setProfileOpen((o) => !o)}
             className="flex items-center gap-2 rounded-lg pl-1 pr-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 focus-ring"
           >
-            <Avatar name={user?.name} size="sm" />
+            <Avatar name={displayName} size="sm" />
             <div className="hidden md:block text-left leading-tight">
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{user?.name}</p>
-              <p className="text-[11px] text-slate-400">{ROLE_LABELS[user?.role]}</p>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{displayName}</p>
+              {showRoleSubtitle && (
+                <p className="text-[11px] text-slate-400">{ROLE_LABELS[user?.role]}</p>
+              )}
             </div>
             <ChevronDown size={14} className="text-slate-400 hidden md:block" />
           </button>

@@ -5,7 +5,9 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       trim: true,
-      default: "User"
+      default: function () {
+        return this.role === "ADMIN" ? "Admin" : "User";
+      },
     },
     phone: {
       type: String,

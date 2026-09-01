@@ -1,10 +1,24 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
+function normalizeUser(userData) {
+  if (!userData) return null;
+  if (userData.role === "ADMIN" && (!userData.name || userData.name === "User")) {
+    return { ...userData, name: "Admin" };
+  }
+  return userData;
+}
+
 function loadStoredUser() {
   try {
     const saved = localStorage.getItem("crm_user");
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    const user = normalizeUser(parsed);
+    if (user && user.name !== parsed?.name) {
+      localStorage.setItem("crm_user", JSON.stringify(user));
+    }
+    return user;
   } catch {
     return null;
   }
@@ -29,12 +43,12 @@ export const loginUser = createAsyncThunk(
       try {
         const res = await api.post("/admin/login", { email, password });
         const data = res.data.data;
-        userData = data.admin || data.user;
+        userData = normalizeUser(data.admin || data.user);
         accessToken = data.accessToken;
       } catch {
         const res = await api.post("/users/login", { email, password });
         const data = res.data.data;
-        userData = data.user;
+        userData = normalizeUser(data.user);
         accessToken = data.accessToken;
       }
 
@@ -50,7 +64,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials(state, action) {
-      state.user = action.payload.user;
+      state.user = normalizeUser(action.payload.user);
       state.token = action.payload.token ?? state.token;
       state.status = "succeeded";
       state.error = null;
@@ -70,11 +84,12 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
+        const user = normalizeUser(action.payload.user);
         state.status = "succeeded";
-        state.user = action.payload.user;
+        state.user = user;
         state.token = action.payload.token;
         if (action.payload.token) localStorage.setItem("accessToken", action.payload.token);
-        localStorage.setItem("crm_user", JSON.stringify(action.payload.user));
+        localStorage.setItem("crm_user", JSON.stringify(user));
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = "failed";

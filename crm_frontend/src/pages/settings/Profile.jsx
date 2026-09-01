@@ -8,7 +8,15 @@ import { ROLE_LABELS } from "../../constants/roles";
 export default function Profile() {
   const { user } = useAuth();
   const toast = useToast();
-  const [form, setForm] = useState({ name: user?.name || "", email: user?.email || "", phone: "+91 98200 11234", designation: user?.designation || "Team Member" });
+  const displayName = (user?.name && user?.name !== "User")
+    ? user.name
+    : (user?.role === "ADMIN" ? "Admin" : (user?.name || "User"));
+  const [form, setForm] = useState({
+    name: displayName,
+    email: user?.email || "",
+    phone: "+91 98200 11234",
+    designation: user?.designation || (user?.role === "ADMIN" ? "System Administrator" : "Team Member"),
+  });
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -21,12 +29,12 @@ export default function Profile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="lg:col-span-1 flex flex-col items-center text-center">
           <div className="relative">
-            <Avatar name={user?.name} size="lg" />
+            <Avatar name={displayName} size="lg" />
             <button className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary-500 text-white flex items-center justify-center border-2 border-white">
               <Camera size={11} />
             </button>
           </div>
-          <p className="text-sm font-semibold text-slate-800 mt-3">{user?.name}</p>
+          <p className="text-sm font-semibold text-slate-800 mt-3">{displayName}</p>
           <p className="text-xs text-slate-400">{form.designation}</p>
           <Badge tone="primary" className="mt-2">{ROLE_LABELS[user?.role]}</Badge>
           <div className="w-full flex flex-col gap-2.5 mt-6 pt-6 border-t border-slate-100 text-left">

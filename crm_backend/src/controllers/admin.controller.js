@@ -44,7 +44,7 @@ const getDashboard = (role) => {
 // ─── POST /api/v1/admin/create ────────────────────────────────────────────────
 
 export const createAdmin = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
 
   if (!email || !password) {
     throw new ApiError(400, "Email and password are required");
@@ -61,6 +61,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newAdmin = await User.create({
+    name: name?.trim() || "Admin",
     email: email.toLowerCase().trim(),
     password: hashedPassword,
     role: "ADMIN",
@@ -253,7 +254,7 @@ export const adminLogin = asyncHandler(async (req, res) => {
         {
           admin: {
             id: admin._id,
-            name: admin.name,
+            name: (admin.name && admin.name !== "User") ? admin.name : "Admin",
             email: admin.email,
             role: admin.role,
             lastLoginAt: admin.lastLoginAt,
