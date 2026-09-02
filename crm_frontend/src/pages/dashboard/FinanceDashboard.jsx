@@ -18,7 +18,7 @@ export default function FinanceDashboard({ user }) {
 
   const summary = summaryWrapper?.data || summaryWrapper || {};
   const kpis = summary.kpis || { totalRevenue: 0, received: 0, pending: 0, overdue: 0, totalExpenses: 0, netRevenue: 0 };
-  const revenueData = revenueWrapper?.data || [];
+  const revenueData = revenueWrapper?.data ?? revenueWrapper ?? [];
 
   return (
     <div className="flex flex-col gap-8 pb-10">

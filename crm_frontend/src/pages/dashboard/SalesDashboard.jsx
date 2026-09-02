@@ -31,8 +31,8 @@ export default function SalesDashboard({ user }) {
   const revenue = summary.revenue || 0;
   const followUps = summary.followUps || [];
   
-  const revenueData = revenueWrapper?.data || [];
-  const leadSourceData = leadSourceWrapper?.data || [];
+  const revenueData = revenueWrapper?.data ?? revenueWrapper ?? [];
+  const leadSourceData = leadSourceWrapper?.data ?? leadSourceWrapper ?? [];
 
   const handleSaveLead = async (formData) => {
     try {

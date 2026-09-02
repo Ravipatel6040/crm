@@ -26,7 +26,7 @@ export default function MarketingDashboard({ user }) {
   const summary = summaryWrapper?.data || summaryWrapper || {};
   const kpis = summary.kpis || {};
   const leadSources = summary.leadSources || [];
-  const revenueData = revenueWrapper?.data || [];
+  const revenueData = revenueWrapper?.data ?? revenueWrapper ?? [];
 
   const handleSaveCampaign = async (campaignData) => {
     try {

@@ -111,10 +111,10 @@ export default function AdminDashboard({ user }) {
             
             {/* Charts for Business Overview */}
             <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5 mt-2">
-              <RevenueChart data={revenueData?.data} />
-              <PipelineChart data={pipelineData?.data} />
+              <RevenueChart data={revenueData?.data ?? revenueData} />
+              <PipelineChart data={pipelineData?.data ?? pipelineData} />
             </div>
-            <LeadSourceChart data={leadSourceData?.data} />
+            <LeadSourceChart data={leadSourceData?.data ?? leadSourceData} />
           </section>
 
           {/* B. BD / Sales Control - Full Access Control */}
