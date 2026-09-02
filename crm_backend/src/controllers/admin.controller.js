@@ -136,13 +136,18 @@ export const createUserAccount = asyncHandler(async (req, res) => {
 // ─── GET /api/v1/admin/users ──────────────────────────────────────────────────
 
 export const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({ role: { $ne: "ADMIN" } }).select("-password -refreshTokenHash").sort({ createdAt: -1 });
+  const filter = {};
+  if (req.query.role) {
+    filter.role = req.query.role;
+  }
+  const users = await User.find(filter).select("-password -refreshTokenHash").sort({ createdAt: -1 });
 
   return res.status(200).json(
     new ApiResponse(
       200,
       users.map(u => ({
-        id: u._id,
+        id: u._id.toString(),
+        _id: u._id.toString(),
         name: u.name,
         email: u.email,
         phone: u.phone,

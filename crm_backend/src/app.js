@@ -29,6 +29,9 @@ import { healthRoutes } from "./routes/health.routes.js";
 import { leadRoutes } from "./routes/lead.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { marketingRoutes } from "./routes/marketing.routes.js";
+import { notificationRoutes } from "./routes/notification.routes.js";
+import { projectRoutes } from "./routes/project.routes.js";
+import { invoiceRouter, paymentRouter, expenseRouter } from "./routes/finance.routes.js";
 
 // Home
 app.get("/", (req, res) => res.json({ msg: "CRM API is running 🚀" }));
@@ -42,6 +45,11 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/leads", leadRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/marketing", marketingRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/invoices", invoiceRouter);
+app.use("/api/v1/payments", paymentRouter);
+app.use("/api/v1/expenses", expenseRouter);
 
 
 

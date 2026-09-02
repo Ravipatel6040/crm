@@ -16,15 +16,17 @@ import Clients from "./pages/clients/Clients";
 import ClientDetail from "./pages/clients/ClientDetail";
 import Projects from "./pages/projects/Projects";
 import ProjectDetail from "./pages/projects/ProjectDetail";
+import Invoices from "./pages/invoices/Invoices";
 import Payments from "./pages/payments/Payments";
+import Expenses from "./pages/finance/Expenses";
 import Campaigns from "./pages/marketing/Campaigns";
 import LeadSources from "./pages/marketing/LeadSources";
 import MarketingAnalytics from "./pages/marketing/MarketingAnalytics";
 import Communication from "./pages/communication/Communication";
 import FollowUps from "./pages/followups/FollowUps";
 import Documents from "./pages/documents/Documents";
-import ActivityLogs from "./pages/activity/ActivityLogs";
 import Reports from "./pages/reports/Reports";
+import Notifications from "./pages/notifications/Notifications";
 import Profile from "./pages/settings/Profile";
 import Settings from "./pages/settings/Settings";
 import Accounts from "./pages/users/Accounts";
@@ -79,6 +81,7 @@ export default function App() {
               
               <Route path="/projects" element={<Protected routeKey="projects"><Projects /></Protected>} />
               <Route path="/projects/:id" element={<Protected routeKey="projects"><ProjectDetail /></Protected>} />
+              <Route path="/requirements" element={<Navigate to="/projects" replace />} />
               <Route path="/tasks" element={<Protected routeKey="tasks"><Placeholder title="Tasks" /></Protected>} />
 
               <Route path="/marketing" element={<Protected routeKey="marketing"><MarketingDashboard /></Protected>} />
@@ -89,16 +92,18 @@ export default function App() {
 
               <Route path="/finance" element={<Protected routeKey="finance"><FinanceDashboard /></Protected>} />
               <Route path="/finance/dashboard" element={<Navigate to="/finance" replace />} />
+              <Route path="/invoices" element={<Protected routeKey="invoices"><Invoices /></Protected>} />
               <Route path="/payments" element={<Protected routeKey="payments"><Payments /></Protected>} />
-              <Route path="/expenses" element={<Protected routeKey="expenses"><Placeholder title="Expenses" /></Protected>} />
+              <Route path="/expenses" element={<Protected routeKey="expenses"><Expenses /></Protected>} />
 
               <Route path="/reports" element={<Protected routeKey="reports"><Reports /></Protected>} />
               <Route path="/communication" element={<Protected routeKey="calls"><Communication /></Protected>} />
-              <Route path="/documents" element={<Protected routeKey="proposals"><Documents /></Protected>} />
+              <Route path="/documents" element={<Navigate to="/dashboard" replace />} />
               
-              <Route path="/activity" element={<Protected routeKey="audit_logs"><ActivityLogs /></Protected>} />
+              <Route path="/activity" element={<Navigate to="/dashboard" replace />} />
               <Route path="/accounts" element={<Protected routeKey="team"><Accounts /></Protected>} />
               
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Protected routeKey="settings"><Settings /></Protected>} />
               <Route path="/profile" element={<Protected routeKey="settings"><Profile /></Protected>} />
 

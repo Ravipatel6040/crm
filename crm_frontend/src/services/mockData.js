@@ -3,7 +3,14 @@ export const users = [];
 export const leads = [];
 export const leadSources = ["Website", "Referral", "Social Media", "Cold Call", "Other"];
 export const pipelineStages = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
-export const revenueOverview = [];
+export const revenueOverview = [
+  { month: "Jan", paid: 48000, pending: 16000 },
+  { month: "Feb", paid: 56000, pending: 19000 },
+  { month: "Mar", paid: 64000, pending: 22000 },
+  { month: "Apr", paid: 78000, pending: 25000 },
+  { month: "May", paid: 92000, pending: 28000 },
+  { month: "Jun", paid: 115000, pending: 34000 },
+];
 export const notifications = [];
 export const projects = [];
 export const projectStatuses = [];

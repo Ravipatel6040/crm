@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Lead } from "../models/lead.model.js";
+import { createNotificationHelper } from "./notification.controller.js";
 
 const generateLeadId = async () => {
   let leadId;
@@ -95,6 +96,17 @@ export const createLead = async (req, res, next) => {
     const populatedLead = await Lead.findById(lead._id)
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email");
+
+    const notifyUser = lead.assignedTo || req.user?._id;
+    if (notifyUser) {
+      await createNotificationHelper({
+        user: notifyUser,
+        title: "New Lead Created",
+        message: `${lead.name} (${lead.company}) was added with status '${lead.status}'.`,
+        type: "LEAD_CREATED",
+        link: "/leads",
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -276,20 +288,19 @@ export const updateLead = async (req, res, next) => {
       });
     }
 
-    const updateData = {
-      name: name?.trim(),
-      company: company?.trim(),
-      phone: phone?.trim(),
-      email: email?.trim().toLowerCase(),
-      source,
-      interestedIn,
-      budget: Number(budget) || 0,
-      assignedTo: assignedTo || null,
-      status,
-      nextFollowUp: nextFollowUp || null,
-      notes,
-      updatedBy: req.user?._id || null,
-    };
+    const updateData = {};
+    if (name !== undefined) updateData.name = name?.trim();
+    if (company !== undefined) updateData.company = company?.trim();
+    if (phone !== undefined) updateData.phone = phone?.trim();
+    if (email !== undefined) updateData.email = email?.trim().toLowerCase();
+    if (source !== undefined) updateData.source = source;
+    if (interestedIn !== undefined) updateData.interestedIn = interestedIn;
+    if (budget !== undefined) updateData.budget = Number(budget) || 0;
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo || null;
+    if (status !== undefined) updateData.status = status;
+    if (nextFollowUp !== undefined) updateData.nextFollowUp = nextFollowUp || null;
+    if (notes !== undefined) updateData.notes = notes;
+    updateData.updatedBy = req.user?._id || null;
 
     let lead = null;
 
@@ -326,6 +337,27 @@ export const updateLead = async (req, res, next) => {
       "assignedTo",
       "name email role"
     );
+
+    const targetUser = lead.assignedTo?._id || lead.assignedTo || req.user?._id;
+    if (targetUser) {
+      if (status === "Won") {
+        await createNotificationHelper({
+          user: targetUser,
+          title: "Deal Won! 🎉",
+          message: `Congratulations! Deal with ${lead.name} (${lead.company}) marked as Won.`,
+          type: "DEAL_WON",
+          link: "/leads",
+        });
+      } else if (nextFollowUp) {
+        await createNotificationHelper({
+          user: targetUser,
+          title: "Follow-up Scheduled",
+          message: `Follow-up with ${lead.name} scheduled for ${new Date(nextFollowUp).toLocaleDateString()}.`,
+          type: "FOLLOW_UP_DUE",
+          link: "/follow-ups",
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,

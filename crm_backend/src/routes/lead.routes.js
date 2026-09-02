@@ -53,8 +53,19 @@ router.get(
   getLead
 );
 
-// Update lead
+// Update lead (supports PUT and PATCH)
 router.put(
+  "/:id",
+  authenticate,
+  authorizeRoles(
+    "ADMIN",
+    "BD_SALES",
+    "MARKETING"
+  ),
+  updateLead
+);
+
+router.patch(
   "/:id",
   authenticate,
   authorizeRoles(

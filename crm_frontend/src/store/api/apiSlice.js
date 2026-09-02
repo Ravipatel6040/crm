@@ -15,7 +15,7 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: axiosBaseQuery(),
   tagTypes: [
-    "Auth", "User", "Lead", "Deal", "Client", "Project", "Task", "Payment",
+    "Auth", "User", "Lead", "Deal", "Client", "Project", "Task", "Requirement", "Payment", "Invoice", "Expense",
     "Campaign", "LeadSource", "Communication", "Document", "Notification",
     "ActivityLog", "Report", "Dashboard", "Product", "Service", "Settings",
   ],
@@ -167,6 +167,29 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/projects/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Project", id: "LIST" }, "Dashboard"],
     }),
+    getProjectManagers: builder.query({
+      query: () => ({ url: "/projects/managers", method: "GET" }),
+      providesTags: [{ type: "User", id: "PM_LIST" }],
+    }),
+    getRequirements: builder.query({
+      query: (params) => ({ url: "/projects/requirements", method: "GET", params }),
+      providesTags: (result) =>
+        result
+          ? [...(result.data ?? result).map((r) => ({ type: "Requirement", id: r.id })), { type: "Requirement", id: "LIST" }]
+          : [{ type: "Requirement", id: "LIST" }],
+    }),
+    createRequirement: builder.mutation({
+      query: (body) => ({ url: "/projects/requirements", method: "POST", data: body }),
+      invalidatesTags: [{ type: "Requirement", id: "LIST" }, "Dashboard"],
+    }),
+    updateRequirement: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/projects/requirements/${id}`, method: "PATCH", data: body }),
+      invalidatesTags: (r, e, { id }) => [{ type: "Requirement", id }, { type: "Requirement", id: "LIST" }, "Dashboard"],
+    }),
+    deleteRequirement: builder.mutation({
+      query: (id) => ({ url: `/projects/requirements/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Requirement", id: "LIST" }, "Dashboard"],
+    }),
     getProjectTasks: builder.query({
       query: (projectId) => ({ url: `/projects/${projectId}/tasks`, method: "GET" }),
       providesTags: (r, e, projectId) => [{ type: "Task", id: `PROJECT-${projectId}` }],
@@ -211,6 +234,52 @@ export const apiSlice = createApi({
     deletePayment: builder.mutation({
       query: (id) => ({ url: `/payments/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Payment", id: "LIST" }, { type: "Payment", id: "SUMMARY" }, "Dashboard"],
+    }),
+
+    // Invoices
+    getInvoices: builder.query({
+      query: (params) => ({ url: "/invoices", method: "GET", params }),
+      providesTags: (result) =>
+        result
+          ? [...(result.data ?? result).map((inv) => ({ type: "Invoice", id: inv.id })), { type: "Invoice", id: "LIST" }]
+          : [{ type: "Invoice", id: "LIST" }],
+    }),
+    getInvoice: builder.query({
+      query: (id) => ({ url: `/invoices/${id}`, method: "GET" }),
+      providesTags: (r, e, id) => [{ type: "Invoice", id }],
+    }),
+    createInvoice: builder.mutation({
+      query: (body) => ({ url: "/invoices", method: "POST", data: body }),
+      invalidatesTags: [{ type: "Invoice", id: "LIST" }, "Dashboard"],
+    }),
+    updateInvoice: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/invoices/${id}`, method: "PATCH", data: body }),
+      invalidatesTags: [{ type: "Invoice", id: "LIST" }, "Dashboard"],
+    }),
+    deleteInvoice: builder.mutation({
+      query: (id) => ({ url: `/invoices/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Invoice", id: "LIST" }, "Dashboard"],
+    }),
+
+    // Expenses
+    getExpenses: builder.query({
+      query: (params) => ({ url: "/expenses", method: "GET", params }),
+      providesTags: (result) =>
+        result
+          ? [...(result.data ?? result).map((e) => ({ type: "Expense", id: e.id })), { type: "Expense", id: "LIST" }]
+          : [{ type: "Expense", id: "LIST" }],
+    }),
+    createExpense: builder.mutation({
+      query: (body) => ({ url: "/expenses", method: "POST", data: body }),
+      invalidatesTags: [{ type: "Expense", id: "LIST" }, "Dashboard"],
+    }),
+    updateExpense: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/expenses/${id}`, method: "PATCH", data: body }),
+      invalidatesTags: [{ type: "Expense", id: "LIST" }, "Dashboard"],
+    }),
+    deleteExpense: builder.mutation({
+      query: (id) => ({ url: `/expenses/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Expense", id: "LIST" }, "Dashboard"],
     }),
 
     // ---------------------------------------------------------------- 8. Marketing
@@ -273,8 +342,10 @@ export const apiSlice = createApi({
     // ---------------------------------------------------------------- 11. Notifications
     getNotifications: builder.query({
       query: () => ({ url: "/notifications", method: "GET" }),
-      providesTags: (result) =>
-        result ? [...result.map((n) => ({ type: "Notification", id: n.id })), { type: "Notification", id: "LIST" }] : [{ type: "Notification", id: "LIST" }],
+      providesTags: (result) => {
+        const list = Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : [];
+        return [...list.map((n) => ({ type: "Notification", id: n.id ?? n._id })), { type: "Notification", id: "LIST" }];
+      },
     }),
     getUnreadNotificationCount: builder.query({
       query: () => ({ url: "/notifications/unread-count", method: "GET" }),
@@ -400,8 +471,12 @@ export const {
   useGetDealsQuery, useUpdateDealStageMutation, useGetPipelineStagesQuery,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,
   useGetProjectsQuery, useGetProjectQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation,
+  useGetProjectManagersQuery,
+  useGetRequirementsQuery, useCreateRequirementMutation, useUpdateRequirementMutation, useDeleteRequirementMutation,
   useGetProjectTasksQuery, useCreateProjectTaskMutation, useUpdateProjectTaskMutation, useDeleteProjectTaskMutation,
   useGetPaymentsQuery, useGetPaymentsSummaryQuery, useGetPaymentQuery, useCreatePaymentMutation, useUpdatePaymentMutation, useDeletePaymentMutation,
+  useGetInvoicesQuery, useGetInvoiceQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation,
+  useGetExpensesQuery, useCreateExpenseMutation, useUpdateExpenseMutation, useDeleteExpenseMutation,
   useGetCampaignsQuery, useCreateCampaignMutation, useUpdateCampaignMutation, useDeleteCampaignMutation,
   useGetMarketingLeadSourcesQuery, useGetMarketingTrendQuery, useGetChannelEffectivenessQuery,
   useGetCommunicationsQuery, useCreateCommunicationMutation, useDeleteCommunicationMutation,

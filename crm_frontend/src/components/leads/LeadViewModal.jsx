@@ -6,42 +6,70 @@ import {
   Mail, Phone, Building2, Calendar, DollarSign, Tag, UserCheck, FileText, Pencil, Trash2
 } from "lucide-react";
 
-export default function LeadViewModal({ open, onClose, lead, userName, onEdit, onDelete }) {
+export default function LeadViewModal({ open, onClose, lead, userName, assigneeName, onEdit, onDelete }) {
   if (!lead) return null;
+
+  const getAssignedName = () => {
+    if (lead.assignedUser?.name) return lead.assignedUser.name;
+    if (typeof lead.assignedTo === "object" && lead.assignedTo?.name) {
+      return lead.assignedTo.name;
+    }
+    if (typeof userName === "function") {
+      try {
+        const res = userName(lead.assignedTo);
+        if (res) return res;
+      } catch (e) {}
+    } else if (typeof userName === "string" && userName.trim()) {
+      return userName;
+    }
+    if (typeof assigneeName === "function") {
+      try {
+        const res = assigneeName(lead);
+        if (res) return res;
+      } catch (e) {}
+    } else if (typeof assigneeName === "string" && assigneeName.trim()) {
+      return assigneeName;
+    }
+    return "Unassigned";
+  };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Lead Profile & Details"
-      subtitle={`ID: ${lead.id || "—"}`}
+      subtitle={`ID: ${lead.id || lead._id || "—"}`}
       size="lg"
       footer={
         <div className="flex items-center justify-between w-full">
-          <Button
-            variant="ghost"
-            tone="danger"
-            icon={Trash2}
-            onClick={() => {
-              onClose();
-              onDelete(lead);
-            }}
-          >
-            Delete
-          </Button>
+          {onDelete ? (
+            <Button
+              variant="ghost"
+              tone="danger"
+              icon={Trash2}
+              onClick={() => {
+                onClose();
+                onDelete(lead);
+              }}
+            >
+              Delete
+            </Button>
+          ) : <div />}
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
-            <Button
-              icon={Pencil}
-              onClick={() => {
-                onClose();
-                onEdit(lead);
-              }}
-            >
-              Edit Lead
-            </Button>
+            {onEdit && (
+              <Button
+                icon={Pencil}
+                onClick={() => {
+                  onClose();
+                  onEdit(lead);
+                }}
+              >
+                Edit Lead
+              </Button>
+            )}
           </div>
         </div>
       }
@@ -139,7 +167,7 @@ export default function LeadViewModal({ open, onClose, lead, userName, onEdit, o
               <div>
                 <p className="text-xs text-slate-400">Assigned BD</p>
                 <p className="font-medium text-slate-800 dark:text-slate-200">
-                  {userName(lead.assignedTo)}
+                  {getAssignedName()}
                 </p>
               </div>
             </div>

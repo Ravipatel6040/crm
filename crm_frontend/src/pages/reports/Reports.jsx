@@ -9,7 +9,8 @@ import {
   useGetLeadsQuery,
   useGetProjectsQuery,
   useGetPaymentsQuery,
-  useGetCampaignsQuery
+  useGetCampaignsQuery,
+  useGetRevenueOverviewQuery
 } from "../../store/api/apiSlice";
 import {
   leads as mockLeads, projects as mockProjects, payments as mockPayments,
@@ -29,11 +30,17 @@ export default function Reports() {
   const { data: projectsData } = useGetProjectsQuery();
   const { data: paymentsData } = useGetPaymentsQuery();
   const { data: campaignsData } = useGetCampaignsQuery();
+  const { data: revenueData } = useGetRevenueOverviewQuery();
 
   const leads = (Array.isArray(leadsData?.data) ? leadsData.data : Array.isArray(leadsData) ? leadsData : mockLeads) || [];
   const projects = (Array.isArray(projectsData?.data) ? projectsData.data : Array.isArray(projectsData) ? projectsData : mockProjects) || [];
   const payments = (Array.isArray(paymentsData?.data) ? paymentsData.data : Array.isArray(paymentsData) ? paymentsData : mockPayments) || [];
   const campaigns = (Array.isArray(campaignsData?.data) ? campaignsData.data : Array.isArray(campaignsData) ? campaignsData : mockCampaigns) || [];
+  const dynamicRevenue = (Array.isArray(revenueData?.data) && revenueData.data.length > 0)
+    ? revenueData.data
+    : (Array.isArray(revenueData) && revenueData.length > 0)
+      ? revenueData
+      : revenueOverview;
 
   const won = leads.filter((l) => l.status === "Won").length;
   const lost = leads.filter((l) => l.status === "Lost").length;
@@ -152,7 +159,7 @@ export default function Reports() {
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueOverview} margin={{ left: -14, right: 8 }}>
+                  <BarChart data={dynamicRevenue} margin={{ left: -14, right: 8 }}>
                     <CartesianGrid vertical={false} stroke="#eef1fa" />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} />

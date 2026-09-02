@@ -38,7 +38,7 @@ export default function FinanceDashboard({ user }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
-            <button onClick={() => navigate("/payments")} className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-400 px-4 py-2.5 text-sm font-bold shadow-md hover:bg-primary-50 dark:hover:bg-slate-700 transition-colors">
+            <button onClick={() => navigate("/invoices")} className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-400 px-4 py-2.5 text-sm font-bold shadow-md hover:bg-primary-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
               <Plus size={16} /> New Invoice
             </button>
             <button onClick={() => navigate("/expenses")} className="flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur px-4 py-2.5 text-sm font-semibold transition-colors">

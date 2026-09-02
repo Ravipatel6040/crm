@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, ChevronDown } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
   Card, Table, Tr, Td, Badge, Avatar, SearchBar, FilterSelect, Button,
@@ -57,6 +57,21 @@ export default function Leads() {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const handleStatusChange = async (lead, newStatus) => {
+    if (lead.status === newStatus) return;
+    const targetId = lead.id || lead._id;
+    setUpdatingId(targetId);
+    try {
+      await updateLead({ id: targetId, status: newStatus }).unwrap();
+      toast?.push(`Status updated to "${newStatus}"`, "success");
+    } catch (err) {
+      toast?.push(err?.data?.message || "Failed to update status", "error");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -203,10 +218,43 @@ export default function Leads() {
                 <Td className="max-w-[160px] truncate">{l.interestedIn || "-"}</Td>
                 <Td className="font-semibold text-slate-700 dark:text-slate-200">{formatCurrency(l.budget)}</Td>
                 <Td>{userName(l.assignedTo)}</Td>
-                <Td>
-                  <Badge tone={l.status === "Won" ? "green" : l.status === "Lost" ? "red" : "blue"}>
-                    {l.status}
-                  </Badge>
+                <Td onClick={(e) => e.stopPropagation()}>
+                  <div className="relative inline-flex items-center">
+                    <select
+                      value={l.status || "New"}
+                      disabled={updatingId === (l.id || l._id)}
+                      onChange={(e) => handleStatusChange(l, e.target.value)}
+                      className={classNames(
+                        "text-xs font-semibold rounded-full pl-3 pr-6 py-1 cursor-pointer border transition-all appearance-none outline-none focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 shadow-sm",
+                        l.status === "Won"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60"
+                          : l.status === "Lost"
+                          ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60"
+                          : l.status === "Follow-up"
+                          ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60"
+                          : l.status === "Proposal" || l.status === "Negotiation"
+                          ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/60"
+                          : l.status === "Contacted"
+                          ? "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800/60"
+                          : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/60"
+                      )}
+                      title="Click to update lead status"
+                    >
+                      {pipelineStages.map((stage) => (
+                        <option
+                          key={stage}
+                          value={stage}
+                          className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-medium py-1"
+                        >
+                          {stage}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={12}
+                      className="absolute right-2 pointer-events-none opacity-60 text-current"
+                    />
+                  </div>
                 </Td>
                 <Td className="text-slate-500 whitespace-nowrap">{formatDate(l.nextFollowUp)}</Td>
                 <Td className="text-right">

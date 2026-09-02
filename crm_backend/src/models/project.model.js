@@ -10,12 +10,27 @@ const projectSchema = new mongoose.Schema(
     client: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Client",
-      required: [true, "Client is required"],
+      default: null,
+    },
+    clientName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
     status: {
       type: String,
-      enum: ["Active", "Completed", "Pending", "Delayed"],
-      default: "Pending",
+      enum: ["Planning", "Requirements", "Development", "Testing", "Client Review", "Completed", "Active", "Pending", "Delayed"],
+      default: "Planning",
+    },
+    stage: {
+      type: String,
+      enum: ["Planning", "Requirements", "Development", "Testing", "Client Review", "Completed"],
+      default: "Planning",
     },
     projectManager: {
       type: mongoose.Schema.Types.ObjectId,
@@ -38,6 +53,10 @@ const projectSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    startDate: {
+      type: Date,
+      default: Date.now,
+    },
     deadline: {
       type: Date,
       default: null,
@@ -46,6 +65,15 @@ const projectSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    documents: [
+      {
+        name: { type: String, trim: true },
+        url: { type: String, default: "" },
+        type: { type: String, default: "PDF" },
+        size: { type: String, default: "" },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

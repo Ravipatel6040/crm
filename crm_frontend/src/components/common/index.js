@@ -11,3 +11,4 @@ export { ToastProvider, useToast } from "./Toast";
 export { default as ConfirmDialog } from "./ConfirmDialog";
 export { EmptyState, LoadingState, ErrorState, Skeleton, TableSkeleton } from "./States";
 export { default as ActionsMenu } from "./ActionsMenu";
+export { default as PdfViewerModal } from "./PdfViewerModal";

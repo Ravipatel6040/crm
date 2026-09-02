@@ -1,38 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, Search, Bell, ChevronDown, LogOut, User, Settings as SettingsIcon, Moon, Sun } from "lucide-react";
+import {
+  Menu, Search, Bell, ChevronDown, LogOut, User, Settings as SettingsIcon,
+  Moon, Sun, Volume2, VolumeX, CheckCheck, CheckCircle2, Sparkles, Clock, Users, Trophy
+} from "lucide-react";
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { Avatar } from "../common";
 import { ROLE_LABELS, ROLES } from "../../constants/roles";
 import { classNames } from "../../utils/format";
-
-function getRoleNotifications(role) {
-  const time = "10 mins ago";
-  const defaults = [{ id: 1, title: "System Update", desc: "CRM v2.0 deployed successfully.", time, read: false }];
-  
-  if (role === ROLES.SALES) return [
-    { id: 101, title: "Follow-up due", desc: "Call with ABC Corp is due today.", time, read: false },
-    { id: 102, title: "New lead assigned", desc: "You have a new hot lead from Website.", time: "1 hr ago", read: false },
-    { id: 103, title: "Proposal accepted", desc: "Client XYZ accepted your proposal.", time: "2 hrs ago", read: true }
-  ];
-  if (role === ROLES.MARKETING) return [
-    { id: 201, title: "Campaign completed", desc: "Summer Sale campaign ended.", time, read: false },
-    { id: 202, title: "New lead generated", desc: "Facebook ad generated 15 new leads.", time: "30 mins ago", read: false }
-  ];
-  if (role === ROLES.PROJECT_MANAGER) return [
-    { id: 301, title: "Task overdue", desc: "Database migration task is overdue.", time, read: false },
-    { id: 302, title: "New requirement", desc: "Client added a new requirement.", time: "2 hrs ago", read: true },
-    { id: 303, title: "Client approval pending", desc: "Waiting for client sign-off on design.", time: "3 hrs ago", read: false }
-  ];
-  if (role === ROLES.FINANCE) return [
-    { id: 401, title: "Invoice overdue", desc: "Invoice #1024 is now 5 days overdue.", time, read: false },
-    { id: 402, title: "Payment received", desc: "₹50,000 received from Acme Corp.", time: "1 hr ago", read: false }
-  ];
-  
-  return defaults;
-}
+import {
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+} from "../../store/api/apiSlice";
+import { playNotificationSound, isSoundEnabled, setSoundEnabled } from "../../utils/notificationSound";
 
 export default function Navbar() {
   const { openDrawer } = useUI();
@@ -43,8 +26,56 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const notifRef = useRef(null);
   const profileRef = useRef(null);
-  const userNotifications = getRoleNotifications(user?.role);
+  const [soundActive, setSoundActive] = useState(isSoundEnabled());
+
+  const { data: notifsData } = useGetNotificationsQuery(undefined, {
+    pollingInterval: 15000,
+  });
+  const [markRead] = useMarkNotificationReadMutation();
+  const [markAllRead] = useMarkAllNotificationsReadMutation();
+
+  const userNotifications = notifsData?.data ?? notifsData ?? [];
   const unread = userNotifications.filter((n) => !n.read).length;
+
+  const prevUnreadRef = useRef(null);
+
+  // Play audio chime when unread notifications increase
+  useEffect(() => {
+    if (prevUnreadRef.current !== null && unread > prevUnreadRef.current) {
+      playNotificationSound("chime");
+    }
+    prevUnreadRef.current = unread;
+  }, [unread]);
+
+  const handleToggleSound = (e) => {
+    e.stopPropagation();
+    const next = !soundActive;
+    setSoundActive(next);
+    setSoundEnabled(next);
+    if (next) {
+      playNotificationSound("chime");
+    }
+  };
+
+  const handleNotificationClick = async (n) => {
+    if (!n.read) {
+      try {
+        await markRead(n.id || n._id).unwrap();
+      } catch (err) {}
+    }
+    setNotifOpen(false);
+    if (n.link) {
+      navigate(n.link);
+    }
+  };
+
+  const handleMarkAll = async (e) => {
+    e.stopPropagation();
+    try {
+      await markAllRead().unwrap();
+      playNotificationSound("success");
+    } catch (err) {}
+  };
 
   useEffect(() => {
     function onClick(e) {
@@ -100,28 +131,95 @@ export default function Navbar() {
             )}
           </button>
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-popover animate-slideUp overflow-hidden">
+            <div className="absolute right-0 mt-2 w-84 sm:w-96 max-w-[92vw] bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-popover animate-slideUp overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Notifications</p>
-                <span className="text-xs text-primary-600 font-medium">{unread} new</span>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Notifications</p>
+                  {unread > 0 ? (
+                    <span className="text-[10px] font-bold bg-primary-100 dark:bg-primary-950/60 text-primary-700 dark:text-primary-400 px-2 py-0.5 rounded-full">
+                      {unread} new
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400">All caught up</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleToggleSound}
+                    className={classNames(
+                      "p-1.5 rounded-lg transition-colors text-xs font-medium flex items-center gap-1",
+                      soundActive
+                        ? "text-primary-600 hover:bg-primary-50 dark:hover:bg-slate-700"
+                        : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    )}
+                    title={soundActive ? "Sound Alert: ON (Click to mute)" : "Sound Alert: MUTED (Click to unmute)"}
+                  >
+                    {soundActive ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                  </button>
+                  {unread > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleMarkAll}
+                      className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline px-2 py-1 flex items-center gap-1"
+                      title="Mark all as read"
+                    >
+                      <CheckCheck size={14} />
+                      <span className="hidden sm:inline">Mark read</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="max-h-80 overflow-y-auto">
-                {userNotifications.map((n) => (
-                  <div key={n.id} className={classNames("px-4 py-3 border-b border-slate-50 last:border-0 flex gap-3", !n.read && "bg-primary-50/40")}>
-                    <span className={classNames("mt-1.5 h-2 w-2 rounded-full shrink-0", n.read ? "bg-slate-200" : "bg-primary-500")} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-700 truncate">{n.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{n.desc}</p>
-                      <p className="text-[11px] text-slate-300 mt-1">{n.time}</p>
-                    </div>
+
+              <div className="max-h-80 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-700/50">
+                {userNotifications.length === 0 ? (
+                  <div className="py-8 text-center px-4">
+                    <Bell className="mx-auto text-slate-300 dark:text-slate-600 mb-2" size={24} />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No notifications yet</p>
                   </div>
-                ))}
+                ) : (
+                  userNotifications.map((n) => (
+                    <div
+                      key={n.id || n._id}
+                      onClick={() => handleNotificationClick(n)}
+                      className={classNames(
+                        "px-4 py-3 flex gap-3 transition-colors cursor-pointer group",
+                        !n.read
+                          ? "bg-primary-50/40 hover:bg-primary-50/70 dark:bg-primary-950/20 dark:hover:bg-primary-950/40"
+                          : "hover:bg-slate-50/80 dark:hover:bg-slate-700/40"
+                      )}
+                    >
+                      <span
+                        className={classNames(
+                          "mt-1.5 h-2 w-2 rounded-full shrink-0",
+                          n.read ? "bg-transparent" : "bg-primary-500 shadow-xs"
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
+                          {n.title}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                          {n.message || n.desc}
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                          {n.time || "Recently"}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+
               <button
-                onClick={() => { setNotifOpen(false); navigate("/notifications"); }}
-                className="w-full text-center text-xs font-medium text-primary-600 py-2.5 hover:bg-primary-50"
+                type="button"
+                onClick={() => {
+                  setNotifOpen(false);
+                  navigate("/notifications");
+                }}
+                className="w-full text-center text-xs font-semibold text-primary-600 dark:text-primary-400 py-2.5 border-t border-slate-100 dark:border-slate-700/80 hover:bg-primary-50 dark:hover:bg-slate-700/50 transition-colors"
               >
-                View all notifications
+                View all notifications →
               </button>
             </div>
           )}

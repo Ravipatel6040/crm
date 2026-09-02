@@ -15,9 +15,13 @@ export default function ActionsMenu({ actions }) {
   }, []);
 
   return (
-    <div className="relative inline-block" ref={ref}>
+    <div className="relative inline-block" ref={ref} onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => setOpen((o) => !o)}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
         className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-ring"
       >
         <MoreVertical size={16} />
@@ -30,7 +34,12 @@ export default function ActionsMenu({ actions }) {
             ) : (
               <button
                 key={i}
-                onClick={() => { setOpen(false); a.onClick(); }}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  a.onClick?.(e);
+                }}
                 className={classNames(
                   "w-full flex items-center gap-2.5 px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 text-left",
                   a.danger ? "text-red-500" : "text-slate-600 dark:text-slate-300"

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
-  Clock, Calendar, CheckCircle2, AlertCircle, Phone, Mail, MessageSquare,
-  Plus, Eye, CalendarClock, ArrowUpRight, Search, Filter, RefreshCw
+  Clock, Calendar, CheckCircle2, AlertCircle, MessageSquare,
+  Plus, Eye, CalendarClock, ArrowUpRight, Search, Filter
 } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
@@ -43,6 +43,12 @@ function ScheduleModal({ open, onClose, onSave, leads = [], initialLead = null }
     }
     setError("");
   };
+
+  useEffect(() => {
+    if (open) {
+      handleOpen();
+    }
+  }, [open, initialLead]);
 
   const submit = () => {
     if (!leadId) {
@@ -269,6 +275,11 @@ export default function FollowUps() {
   };
 
   const assigneeName = (lead) => {
+    if (!lead) return "Unassigned";
+    if (typeof lead === "string") {
+      const u = users.find((x) => x.id === lead || x._id === lead);
+      return u?.name || "Unassigned";
+    }
     if (lead.assignedUser?.name) return lead.assignedUser.name;
     const u = users.find((x) => x.id === lead.assignedTo || x._id === lead.assignedTo);
     return u?.name || "Unassigned";
@@ -284,25 +295,15 @@ export default function FollowUps() {
             : "Monitor and manage company-wide sales pipeline follow-ups"
         }
         action={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              icon={RefreshCw}
-              onClick={() => refetch()}
-              title="Refresh follow-ups"
-            >
-              Refresh
-            </Button>
-            <Button
-              icon={Plus}
-              onClick={() => {
-                setRescheduleLead(null);
-                setScheduleModalOpen(true);
-              }}
-            >
-              Schedule Follow-up
-            </Button>
-          </div>
+          <Button
+            icon={Plus}
+            onClick={() => {
+              setRescheduleLead(null);
+              setScheduleModalOpen(true);
+            }}
+          >
+            Schedule Follow-up
+          </Button>
         }
       />
 
@@ -484,56 +485,37 @@ export default function FollowUps() {
 
                   {/* Actions */}
                   <Td align="right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {/* Call Action */}
-                      {lead.phone && (
-                        <a
-                          href={`tel:${lead.phone}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
-                          title={`Call ${lead.name} (${lead.phone})`}
-                        >
-                          <Phone size={15} />
-                        </a>
-                      )}
-
-                      {/* Email Action */}
-                      {lead.email && (
-                        <a
-                          href={`mailto:${lead.email}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
-                          title={`Email ${lead.email}`}
-                        >
-                          <Mail size={15} />
-                        </a>
-                      )}
-
+                    <div className="flex items-center justify-end gap-2">
                       {/* Reschedule Button */}
-                      <Button
-                        size="xs"
-                        variant="outline"
+                      <button
+                        type="button"
                         onClick={() => {
                           setRescheduleLead(lead);
                           setScheduleModalOpen(true);
                         }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800/60 transition-colors cursor-pointer"
+                        title="Reschedule this follow-up"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                         Reschedule
-                      </Button>
+                      </button>
 
                       {/* Mark Done */}
-                      <Button
-                        size="xs"
-                        variant="secondary"
+                      <button
+                        type="button"
                         onClick={() => handleMarkDone(lead)}
                         title="Mark follow-up done and progress to proposal"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800/60 transition-colors cursor-pointer"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                         Done
-                      </Button>
+                      </button>
 
                       {/* View Lead Details */}
                       <button
                         type="button"
                         onClick={() => setViewingLead(lead)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors ml-0.5"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors"
                         title="View Full Lead Details"
                       >
                         <Eye size={15} />
@@ -575,6 +557,7 @@ export default function FollowUps() {
           open={!!viewingLead}
           onClose={() => setViewingLead(null)}
           lead={viewingLead}
+          userName={assigneeName}
           assigneeName={assigneeName(viewingLead)}
         />
       )}
