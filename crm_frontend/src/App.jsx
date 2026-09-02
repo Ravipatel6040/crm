@@ -9,7 +9,6 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
 import Dashboard from "./pages/dashboard/Dashboard";
-import SalesDashboard from "./pages/dashboard/SalesDashboard";
 import MarketingDashboard from "./pages/dashboard/MarketingDashboard";
 import FinanceDashboard from "./pages/dashboard/FinanceDashboard";
 import Leads from "./pages/leads/Leads";
@@ -69,8 +68,8 @@ export default function App() {
               }
             >
               <Route path="/dashboard" element={<Protected routeKey="dashboard"><Dashboard /></Protected>} />
-              <Route path="/sales" element={<Protected routeKey="sales"><SalesDashboard /></Protected>} />
-              <Route path="/sales/dashboard" element={<Navigate to="/sales" replace />} />
+              <Route path="/sales" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/sales/dashboard" element={<Navigate to="/dashboard" replace />} />
 
               <Route path="/leads" element={<Protected routeKey="leads"><Leads /></Protected>} />
               <Route path="/my-leads" element={<Navigate to="/leads" replace />} />

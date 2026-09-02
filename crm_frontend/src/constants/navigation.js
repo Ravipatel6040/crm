@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, GitBranch, Briefcase, FolderKanban, CheckSquare,
   CreditCard, BarChart3, Megaphone, Radio, LineChart, MessageSquare,
   FileText, Bell, ClipboardList, UserCircle, Settings, Package, Wrench, UserCog,
-  Clock, Target
+  Clock
 } from "lucide-react";
 
 export const NAV_SECTIONS = [
@@ -12,7 +12,6 @@ export const NAV_SECTIONS = [
       { key: "dashboard", label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
       { key: "leads", label: "Leads", to: "/leads", icon: Users },
       { key: "projects", label: "Projects", to: "/projects", icon: FolderKanban },
-      { key: "sales", label: "BD / Sales", to: "/sales", icon: Target },
       { key: "marketing", label: "Marketing", to: "/marketing", icon: Megaphone },
       { key: "finance", label: "Finance", to: "/finance", icon: CreditCard },
       { key: "reports", label: "Reports", to: "/reports", icon: BarChart3 },
@@ -26,7 +25,7 @@ export const NAV_SECTIONS = [
     ],
   },
   {
-    title: "BD / Sales",
+    title: "Sales",
     items: [
       { key: "follow_ups", label: "Follow-ups", to: "/follow-ups", icon: Clock },
       { key: "calls", label: "Calls", to: "/communication", icon: MessageSquare },

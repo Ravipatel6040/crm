@@ -131,8 +131,7 @@ export default function AdminDashboard({ user }) {
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => navigate("/follow-ups")}>Follow-ups</Button>
-                <Button size="sm" variant="outline" onClick={() => navigate("/leads")}>Manage Leads</Button>
-                <Button size="sm" onClick={() => navigate("/sales")}>Open Sales Page</Button>
+                <Button size="sm" onClick={() => navigate("/leads")}>Manage Leads</Button>
               </div>
             </div>
 
