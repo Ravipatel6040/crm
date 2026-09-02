@@ -44,7 +44,7 @@ const getDashboard = (role) => {
 // ─── POST /api/v1/admin/create ────────────────────────────────────────────────
 
 export const createAdmin = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
 
   if (!email || !password) {
     throw new ApiError(400, "Email and password are required");
@@ -61,6 +61,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newAdmin = await User.create({
+    name: name?.trim() || "Admin",
     email: email.toLowerCase().trim(),
     password: hashedPassword,
     role: "ADMIN",
@@ -135,13 +136,18 @@ export const createUserAccount = asyncHandler(async (req, res) => {
 // ─── GET /api/v1/admin/users ──────────────────────────────────────────────────
 
 export const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({ role: { $ne: "ADMIN" } }).select("-password -refreshTokenHash").sort({ createdAt: -1 });
+  const filter = {};
+  if (req.query.role) {
+    filter.role = req.query.role;
+  }
+  const users = await User.find(filter).select("-password -refreshTokenHash").sort({ createdAt: -1 });
 
   return res.status(200).json(
     new ApiResponse(
       200,
       users.map(u => ({
-        id: u._id,
+        id: u._id.toString(),
+        _id: u._id.toString(),
         name: u.name,
         email: u.email,
         phone: u.phone,
@@ -158,17 +164,22 @@ export const getUsers = asyncHandler(async (req, res) => {
 
 export const updateUserAccount = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone, designation, role, status } = req.body;
+  const { name, email, phone, designation, role, status, password } = req.body;
 
-  const user = await User.findById(id);
+  const user = await User.findById(id).select("+password");
   if (!user) throw new ApiError(404, "User not found");
 
   if (name) user.name = name;
   if (email) user.email = email.toLowerCase().trim();
-  if (phone) user.phone = phone;
-  if (designation) user.designation = designation;
+  if (phone !== undefined) user.phone = phone;
+  if (designation !== undefined) user.designation = designation;
   if (role) user.role = role;
   if (status) user.status = status.toUpperCase();
+
+  if (password && typeof password === "string" && password.trim().length >= 6) {
+    user.password = await bcrypt.hash(password.trim(), 10);
+    user.refreshTokenHash = null;
+  }
 
   await user.save();
 
@@ -253,11 +264,13 @@ export const adminLogin = asyncHandler(async (req, res) => {
         {
           admin: {
             id: admin._id,
+            name: (admin.name && admin.name !== "User") ? admin.name : "Admin",
             email: admin.email,
             role: admin.role,
             lastLoginAt: admin.lastLoginAt,
           },
           accessToken,
+          refreshToken,
           redirectTo: getDashboard(admin.role),
         },
         "Admin login successful"
@@ -336,6 +349,7 @@ export const refreshAdminToken = asyncHandler(async (req, res) => {
         200,
         {
           accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
         },
         "Access token refreshed successfully"
       )

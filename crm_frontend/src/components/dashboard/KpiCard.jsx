@@ -12,9 +12,11 @@ export default function KpiCard({ icon: Icon, title, value, change, positive = t
   return (
     <Card className="hover:shadow-popover transition-shadow duration-200">
       <div className="flex items-start justify-between">
-        <div className={classNames("h-10 w-10 rounded-xl flex items-center justify-center", tones[tone])}>
-          <Icon size={19} />
-        </div>
+        {Icon && (
+          <div className={classNames("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", tones[tone])}>
+            <Icon size={19} />
+          </div>
+        )}
         {change && (
           <span
             className={classNames(

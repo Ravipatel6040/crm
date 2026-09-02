@@ -27,18 +27,30 @@ function TooltipCard({ active, payload, label }) {
  * hard-coded from mockData); this component only renders what it's given.
  */
 export function LeadSourceChart({ data = [], title = "Lead Sources", subtitle = "Distribution by acquisition channel" }) {
+  const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  const chartData = raw.map((d) => ({
+    name: String(d.name || d._id || "Other"),
+    value: Number(d.value ?? d.count ?? 0),
+  })).filter((d) => d.value > 0);
+
+  // If no items have value > 0, fallback to raw mapping if exists
+  const displayData = chartData.length > 0 ? chartData : raw.map((d) => ({
+    name: String(d.name || d._id || "Other"),
+    value: Number(d.value ?? d.count ?? 0),
+  }));
+
   return (
     <Card>
       <CardHeader title={title} subtitle={subtitle} />
-      {data.length === 0 ? (
+      {displayData.length === 0 ? (
         <div className="h-64 flex items-center justify-center text-sm text-slate-400">No lead source data yet</div>
       ) : (
         <>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={data} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                  {data.map((_, i) => (
+                <Pie data={displayData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
+                  {displayData.map((_, i) => (
                     <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                   ))}
                 </Pie>
@@ -47,11 +59,11 @@ export function LeadSourceChart({ data = [], title = "Lead Sources", subtitle = 
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-2">
-            {data.map((d, i) => (
+            {displayData.map((d, i) => (
               <div key={d.name} className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="h-2 w-2 rounded-full shrink-0" style={{ background: PALETTE[i % PALETTE.length] }} />
                 <span className="truncate">{d.name}</span>
-                <span className="ml-auto font-medium text-slate-700">{d.value}</span>
+                <span className="ml-auto font-medium text-slate-700 dark:text-slate-200">{d.value}</span>
               </div>
             ))}
           </div>
@@ -66,15 +78,21 @@ export function LeadSourceChart({ data = [], title = "Lead Sources", subtitle = 
  * Pulled from useGetPipelineSummaryQuery().
  */
 export function PipelineChart({ data = [], title = "Sales Pipeline", subtitle = "Deals across each stage" }) {
+  const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  const chartData = raw.map((d) => ({
+    stage: String(d.stage || d.name || "N/A"),
+    count: Number(d.count ?? d.value ?? 0),
+  }));
+
   return (
     <Card>
       <CardHeader title={title} subtitle={subtitle} />
-      {data.length === 0 ? (
+      {chartData.length === 0 ? (
         <div className="h-64 flex items-center justify-center text-sm text-slate-400">No pipeline data yet</div>
       ) : (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ left: -20, right: 8 }}>
+            <BarChart data={chartData} margin={{ left: -20, right: 8 }}>
               <CartesianGrid vertical={false} stroke="#eef1fa" />
               <XAxis dataKey="stage" tick={{ fontSize: 10, fill: "#94a3b8" }} interval={0} angle={-25} textAnchor="end" height={55} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} allowDecimals={false} />
@@ -93,15 +111,22 @@ export function PipelineChart({ data = [], title = "Sales Pipeline", subtitle = 
  * Pulled from useGetRevenueOverviewQuery().
  */
 export function RevenueChart({ data = [], title = "Revenue Overview", subtitle = "Monthly revenue, paid vs pending" }) {
+  const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  const chartData = raw.map((d) => ({
+    month: String(d.month || d.name || "N/A"),
+    paid: Number(d.paid ?? d.revenue ?? d.received ?? 0),
+    pending: Number(d.pending ?? d.pendingAmount ?? d.expenses ?? 0),
+  }));
+
   return (
     <Card>
       <CardHeader title={title} subtitle={subtitle} />
-      {data.length === 0 ? (
+      {chartData.length === 0 ? (
         <div className="h-72 flex items-center justify-center text-sm text-slate-400">No revenue data yet</div>
       ) : (
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ left: -14, right: 8 }}>
+            <AreaChart data={chartData} margin={{ left: -14, right: 8 }}>
               <defs>
                 <linearGradient id="paidGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3a56b0" stopOpacity={0.35} />

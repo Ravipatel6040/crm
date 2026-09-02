@@ -15,7 +15,12 @@ export function RequireAuth({ children }) {
 // Wraps an individual route: redirects to /dashboard if the role can't access it.
 export function RequirePermission({ routeKey, children }) {
   const { user } = useAuth();
-  if (!canAccess(user?.role, routeKey)) {
+  const isAllowed =
+    canAccess(user?.role, routeKey) ||
+    (routeKey === "leads" && canAccess(user?.role, "my_leads")) ||
+    (routeKey === "my_leads" && canAccess(user?.role, "leads"));
+
+  if (!isAllowed) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;

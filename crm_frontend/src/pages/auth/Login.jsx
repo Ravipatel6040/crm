@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Layers, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
+import { z } from "zod";
 import { useAuth } from "../../context/AuthContext";
-import { Button, Field, Input, Select } from "../../components/common";
+import { Button, Field, Input, Select, useToast } from "../../components/common";
 import { ROLE_LABELS, ROLES } from "../../constants/roles";
+
+const loginSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 export default function Login() {
   const { login, loading } = useAuth();
@@ -13,17 +19,35 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const { push: showToast } = useToast();
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!form.email) errs.email = "Email is required";
-    if (!form.password) errs.password = "Password is required";
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
-    await login(form);
-    navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+    setErrors({});
+    
+    try {
+      loginSchema.parse(form);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const errs = {};
+        err.errors.forEach((e) => {
+          errs[e.path[0]] = e.message;
+        });
+        setErrors(errs);
+        showToast("Please fix the errors in the form.", "error");
+        return;
+      }
+    }
+
+    try {
+      await login(form);
+      showToast("Logged in successfully!", "success");
+      navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+    } catch (err) {
+      showToast(err.message || "Login failed", "error");
+    }
   };
 
   return (
@@ -120,9 +144,9 @@ export default function Login() {
             <Field label="Demo role (for preview)" hint="Switch roles to preview role-based access.">
               <Select value={form.role} onChange={(e) => set("role", e.target.value)}>
                 {Object.values(ROLES).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </option>
                 ))}
               </Select>
             </Field>

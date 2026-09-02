@@ -6,7 +6,15 @@ import PageHeader from "../../components/layout/PageHeader";
 import { Card, CardHeader, Tabs, Badge, Table, Tr, Td } from "../../components/common";
 import KpiCard from "../../components/dashboard/KpiCard";
 import {
-  leads, projects, payments, campaigns, revenueOverview, leadSources,
+  useGetLeadsQuery,
+  useGetProjectsQuery,
+  useGetPaymentsQuery,
+  useGetCampaignsQuery,
+  useGetRevenueOverviewQuery
+} from "../../store/api/apiSlice";
+import {
+  leads as mockLeads, projects as mockProjects, payments as mockPayments,
+  campaigns as mockCampaigns, revenueOverview, leadSources,
 } from "../../services/mockData";
 import { formatCurrency } from "../../utils/format";
 import { Target, Trophy, XCircle, TrendingUp, Megaphone, Percent, FolderKanban, CheckCircle2, Clock3, Wallet, AlertTriangle } from "lucide-react";
@@ -17,27 +25,47 @@ const PALETTE = ["#3a56b0", "#6480cf", "#8fa2dc", "#293e85", "#b7c3e9", "#192551
 export default function Reports() {
   const [tab, setTab] = useState("Sales");
 
+  // RTK Query live data
+  const { data: leadsData } = useGetLeadsQuery();
+  const { data: projectsData } = useGetProjectsQuery();
+  const { data: paymentsData } = useGetPaymentsQuery();
+  const { data: campaignsData } = useGetCampaignsQuery();
+  const { data: revenueData } = useGetRevenueOverviewQuery();
+
+  const leads = (Array.isArray(leadsData?.data) ? leadsData.data : Array.isArray(leadsData) ? leadsData : mockLeads) || [];
+  const projects = (Array.isArray(projectsData?.data) ? projectsData.data : Array.isArray(projectsData) ? projectsData : mockProjects) || [];
+  const payments = (Array.isArray(paymentsData?.data) ? paymentsData.data : Array.isArray(paymentsData) ? paymentsData : mockPayments) || [];
+  const campaigns = (Array.isArray(campaignsData?.data) ? campaignsData.data : Array.isArray(campaignsData) ? campaignsData : mockCampaigns) || [];
+  const dynamicRevenue = (Array.isArray(revenueData?.data) && revenueData.data.length > 0)
+    ? revenueData.data
+    : (Array.isArray(revenueData) && revenueData.length > 0)
+      ? revenueData
+      : revenueOverview;
+
   const won = leads.filter((l) => l.status === "Won").length;
   const lost = leads.filter((l) => l.status === "Lost").length;
   const conversionRate = leads.length ? ((won / leads.length) * 100).toFixed(1) : 0;
-  const revenueFromLeads = leads.filter((l) => l.status === "Won").reduce((s, l) => s + l.budget, 0);
+  const revenueFromLeads = leads.filter((l) => l.status === "Won").reduce((s, l) => s + (l.budget || 0), 0);
 
-  const activeProjects = projects.filter((p) => p.status === "In Progress").length;
+  const activeProjects = projects.filter((p) => p.status === "In Progress" || p.status === "Active").length;
   const completedProjects = projects.filter((p) => p.status === "Completed").length;
   const delayedProjects = projects.filter((p) => p.status === "On Hold").length;
-  const taskCompletion = projects.reduce((s, p) => s + p.tasks.done, 0);
-  const taskTotal = projects.reduce((s, p) => s + p.tasks.total, 0);
+  const taskCompletion = projects.reduce((s, p) => s + (p.tasks?.done || 0), 0);
+  const taskTotal = projects.reduce((s, p) => s + (p.tasks?.total || 1), 0);
 
-  const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
-  const totalPaid = payments.reduce((s, p) => s + p.paid, 0);
-  const totalPending = payments.reduce((s, p) => s + p.pending, 0);
-  const totalOverdue = payments.filter((p) => p.status === "Overdue").reduce((s, p) => s + p.pending, 0);
+  const totalRevenue = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const totalPaid = payments.reduce((s, p) => s + (p.paid || p.amount || 0), 0);
+  const totalPending = payments.reduce((s, p) => s + (p.pending || 0), 0);
+  const totalOverdue = payments.filter((p) => p.status === "Overdue").reduce((s, p) => s + (p.pending || 0), 0);
 
   const sourceData = leadSources.map((s) => ({ name: s, value: leads.filter((l) => l.source === s).length || 1 }));
 
   return (
     <div>
-      <PageHeader title="Reports" subtitle="Consolidated performance across sales, marketing, projects and finance" />
+      <PageHeader
+        title="Reports & Analytics"
+        subtitle="Consolidated performance across sales, marketing, projects and finance"
+      />
 
       <Card padding="p-0" className="mb-6">
         <div className="px-5 pt-2">
@@ -131,7 +159,7 @@ export default function Reports() {
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueOverview} margin={{ left: -14, right: 8 }}>
+                  <BarChart data={dynamicRevenue} margin={{ left: -14, right: 8 }}>
                     <CartesianGrid vertical={false} stroke="#eef1fa" />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} />

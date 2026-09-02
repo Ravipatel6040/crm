@@ -85,3 +85,5 @@ export const authorizeRoles = (...roles) => {
     next();
   };
 };
+
+export const verifyJWT = authenticate;

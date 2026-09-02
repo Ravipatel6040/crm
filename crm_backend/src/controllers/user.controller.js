@@ -86,10 +86,12 @@ export const loginUser = asyncHandler(async (req, res) => {
         {
           user: {
             id: user._id,
+            name: user.name,
             email: user.email,
             role: user.role,
           },
           accessToken,
+          refreshToken,
           redirectTo: getDashboard(user.role),
         },
         "Login successful"
@@ -156,7 +158,10 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { accessToken: newAccessToken },
+        {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        },
         "Access token refreshed"
       )
     );

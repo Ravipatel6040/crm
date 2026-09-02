@@ -6,9 +6,9 @@ const ToastContext = createContext(null);
 
 const icons = { success: CheckCircle2, error: XCircle, info: Info };
 const tones = {
-  success: "border-emerald-100 bg-emerald-50 text-emerald-700",
-  error: "border-red-100 bg-red-50 text-red-700",
-  info: "border-primary-100 bg-primary-50 text-primary-700",
+  success: "bg-primary-600 text-white shadow-primary-500/20 border-transparent",
+  error: "bg-red-500 text-white shadow-red-500/20 border-transparent",
+  info: "bg-slate-800 text-white border-transparent",
 };
 
 export function ToastProvider({ children }) {
@@ -25,7 +25,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ push }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] sm:w-auto">
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] sm:w-auto items-center">
         {toasts.map((t) => {
           const Icon = icons[t.type];
           return (

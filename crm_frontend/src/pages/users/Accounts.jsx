@@ -24,7 +24,7 @@ const ROLE_FILTER_OPTIONS = [ROLES.ADMIN, ROLES.SALES, ROLES.MARKETING, ROLES.PR
   (r) => ROLE_LABELS[r]
 );
 
-const COLUMNS = ["Name", "Contact", "Role", "Designation", "Status", ""];
+const COLUMNS = ["Name", "Contact", "Role", "Designation", "Status", "Actions"];
 
 export default function Accounts() {
   const toast = useToast();
@@ -126,12 +126,22 @@ export default function Accounts() {
                 <Td className="text-slate-500">{u.designation || "—"}</Td>
                 <Td><Badge tone={u.status === "Inactive" ? "red" : "green"}>{u.status || "Active"}</Badge></Td>
                 <Td className="text-right">
-                  <ActionsMenu
-                    actions={[
-                      { label: "Edit", icon: Pencil, onClick: () => { setEditing(u); setModalOpen(true); } },
-                      { label: "Remove", icon: Trash2, danger: true, onClick: () => setDeleteTarget(u) },
-                    ]}
-                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setEditing(u); setModalOpen(true); }}
+                      className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(u)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Remove"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </Td>
               </Tr>
             ))}
