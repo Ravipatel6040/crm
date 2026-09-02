@@ -1,19 +1,25 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Megaphone, Target, BarChart2, MousePointerClick, 
-  ArrowRight, Sparkles, Plus, Play, Pause, Edit, Link, Activity
+  ArrowRight, Sparkles, Plus, Play, Pause, Edit, Link, Activity, Radio
 } from "lucide-react";
 import { LeadSourceChart, RevenueChart } from "../../components/dashboard/Charts";
 import KpiCard from "../../components/dashboard/KpiCard";
-import { Card, Badge, Button, LoadingState, EmptyState } from "../../components/common";
+import { Card, Badge, Button, LoadingState, EmptyState, useToast } from "../../components/common";
+import CampaignFormModal from "../../components/campaigns/CampaignFormModal";
 import { ROLE_LABELS } from "../../constants/roles";
 import { formatCompactCurrency } from "../../utils/format";
 import {
-  useGetMarketingDashboardSummaryQuery, useGetRevenueOverviewQuery
+  useGetMarketingDashboardSummaryQuery, useGetRevenueOverviewQuery, useCreateCampaignMutation
 } from "../../store/api/apiSlice";
 
 export default function MarketingDashboard({ user }) {
   const navigate = useNavigate();
+  const toast = useToast();
+  const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
+  const [createCampaign] = useCreateCampaignMutation();
+
   const { data: summaryWrapper, isLoading: loadingSummary } = useGetMarketingDashboardSummaryQuery();
   const { data: revenueWrapper } = useGetRevenueOverviewQuery(); // Mock monthly analytics
   
@@ -21,6 +27,16 @@ export default function MarketingDashboard({ user }) {
   const kpis = summary.kpis || {};
   const leadSources = summary.leadSources || [];
   const revenueData = revenueWrapper?.data || [];
+
+  const handleSaveCampaign = async (campaignData) => {
+    try {
+      await createCampaign(campaignData).unwrap();
+      toast?.push("Campaign created successfully");
+      setIsNewCampaignOpen(false);
+    } catch (err) {
+      toast?.push(err?.data?.message || "Error creating campaign", "error");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-8 pb-10">
@@ -33,17 +49,23 @@ export default function MarketingDashboard({ user }) {
               <Sparkles size={12} /> {ROLE_LABELS[user?.role]} workspace
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
-              Hello, {user?.name?.split(" ")[0]}.
+              Hello, {user?.name ? user.name.split(" ")[0] : (user?.email ? user.email.split("@")[0] : "there")}.
             </h1>
             <p className="text-primary-100 text-sm mt-1.5 max-w-md">
               You are currently running {kpis.totalCampaigns || 0} active campaigns generating {kpis.leadsGenerated || 0} leads.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
-            <button onClick={() => navigate("/campaigns")} className="flex items-center gap-2 rounded-xl bg-white text-primary-700 px-3.5 py-2.5 text-sm font-semibold hover:bg-primary-50">
+            <button
+              onClick={() => setIsNewCampaignOpen(true)}
+              className="flex items-center gap-2 rounded-xl bg-white text-primary-700 px-3.5 py-2.5 text-sm font-semibold hover:bg-primary-50 transition-colors shadow-sm"
+            >
               <Plus size={15} /> New Campaign
             </button>
-            <button onClick={() => navigate("/reports")} className="flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur px-3.5 py-2.5 text-sm font-medium">
+            <button
+              onClick={() => navigate("/marketing/analytics")}
+              className="flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur px-3.5 py-2.5 text-sm font-medium transition-colors"
+            >
               <BarChart2 size={15} /> Analytics
             </button>
           </div>
@@ -66,7 +88,7 @@ export default function MarketingDashboard({ user }) {
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
             <div className="flex flex-col gap-6">
-              {/* Marketing Analytics Charts */}
+              {/* Marketing Analytics */}
               <section className="flex flex-col gap-4">
                 <h2 className="text-lg font-bold text-slate-800">Marketing Analytics</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,43 +96,6 @@ export default function MarketingDashboard({ user }) {
                   {/* Using Revenue chart as mock Monthly Performance */}
                   <RevenueChart data={revenueData} /> 
                 </div>
-              </section>
-
-              {/* Campaign Management Grid */}
-              <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold text-slate-800">Campaign Management</h2>
-                <Card>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center divide-x divide-y divide-slate-100 [&>div]:p-4">
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Plus className="text-primary-500 mb-1" size={20}/>
-                      <a href="/campaigns" className="text-sm text-slate-700 font-medium hover:text-primary-600">Create Campaign</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Edit className="text-primary-500 mb-1" size={20}/>
-                      <a href="/campaigns" className="text-sm text-slate-700 font-medium hover:text-primary-600">Edit Campaign</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Play className="text-primary-500 mb-1" size={20}/>
-                      <a href="/campaigns" className="text-sm text-slate-700 font-medium hover:text-primary-600">Start / Stop</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Link className="text-primary-500 mb-1" size={20}/>
-                      <a href="/campaigns" className="text-sm text-slate-700 font-medium hover:text-primary-600">Add Content</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <MousePointerClick className="text-primary-500 mb-1" size={20}/>
-                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Track Leads</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Target className="text-primary-500 mb-1" size={20}/>
-                      <a href="/reports" className="text-sm text-slate-700 font-medium hover:text-primary-600">Track Conversions</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Activity className="text-primary-500 mb-1" size={20}/>
-                      <a href="/reports" className="text-sm text-slate-700 font-medium hover:text-primary-600">View Performance</a>
-                    </div>
-                  </div>
-                </Card>
               </section>
             </div>
 
@@ -141,6 +126,12 @@ export default function MarketingDashboard({ user }) {
           </div>
         </>
       )}
+
+      <CampaignFormModal
+        open={isNewCampaignOpen}
+        onClose={() => setIsNewCampaignOpen(false)}
+        onSave={handleSaveCampaign}
+      />
     </div>
   );
 }

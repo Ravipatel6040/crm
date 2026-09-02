@@ -22,21 +22,26 @@ app.use(cookieParser()); // Required to parse httpOnly cookies
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
+import { authRoutes } from "./routes/auth.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { leadRoutes } from "./routes/lead.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
+import { marketingRoutes } from "./routes/marketing.routes.js";
 
 // Home
 app.get("/", (req, res) => res.json({ msg: "CRM API is running 🚀" }));
 
-// Admin auth  →  /api/v1/admin/login | /refresh | /logout | /me
+// Unified auth routes → /api/v1/auth/login | /refresh | /logout | /me
+app.use("/api/v1/auth", authRoutes);
+// Admin auth & management → /api/v1/admin
 app.use("/api/v1/admin", adminRoutes);
-// General user routes
+// General user routes → /api/v1/users
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/leads", leadRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/marketing", marketingRoutes);
 
 
 

@@ -93,6 +93,19 @@ export default function ProjectDetail() {
                   <p>Manager: <span className="font-medium">{userName(project.manager)}</span></p>
                   <p>Priority: <Badge tone={priorityTone[project.priority]}>{project.priority}</Badge></p>
                   <p>Status: <Badge>{project.status}</Badge></p>
+                  {project.link && (
+                    <p className="flex items-center gap-1.5 mt-1">
+                      Link:{" "}
+                      <a
+                        href={project.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary-600 dark:text-primary-400 hover:underline font-medium break-all"
+                      >
+                        {project.link}
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
               <div>

@@ -28,6 +28,16 @@ const projectSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High", "Critical"],
+      default: "Medium",
+    },
+    link: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     deadline: {
       type: Date,
       default: null,

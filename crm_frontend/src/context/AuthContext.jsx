@@ -1,23 +1,45 @@
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  loginUser, logout as logoutAction,
+  loginUser, logout as logoutAction, updateTokens,
   selectCurrentUser, selectIsAuthenticated, selectAuthStatus, selectAuthError,
 } from "../store/slices/authSlice";
 
 /**
  * AuthContext.jsx
  * ----------------------------------------------------------------------
- * Auth state now lives in Redux (see src/store/slices/authSlice.js) so it
- * can be read from anywhere in the store (RTK Query headers, thunks,
- * dashboards, etc) instead of being locked inside a React Context tree.
- *
- * `AuthProvider` is kept as a harmless passthrough and `useAuth()` keeps
- * its original signature ({ user, login, logout, loading, isAuthenticated,
- * error }) purely so none of the existing components that already call
- * `useAuth()` (Navbar, Sidebar, ProtectedRoute, Login, Profile, Settings,
- * Dashboard...) need to change. Internally it's 100% Redux.
+ * Auth state lives in Redux (see src/store/slices/authSlice.js).
+ * AuthProvider synchronizes window events from Axios interceptors
+ * (silent refresh, automatic logout) directly with the Redux store.
  */
 export function AuthProvider({ children }) {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const handleTokenRefreshed = (e) => {
+      if (e.detail?.accessToken) {
+        dispatch(
+          updateTokens({
+            accessToken: e.detail.accessToken,
+            refreshToken: e.detail.refreshToken,
+          })
+        );
+      }
+    };
+
+    const handleLogout = () => {
+      dispatch(logoutAction());
+    };
+
+    window.addEventListener("auth:token-refreshed", handleTokenRefreshed);
+    window.addEventListener("auth:logout", handleLogout);
+
+    return () => {
+      window.removeEventListener("auth:token-refreshed", handleTokenRefreshed);
+      window.removeEventListener("auth:logout", handleLogout);
+    };
+  }, [dispatch]);
+
   return children;
 }
 

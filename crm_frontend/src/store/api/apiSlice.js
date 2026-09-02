@@ -216,8 +216,10 @@ export const apiSlice = createApi({
     // ---------------------------------------------------------------- 8. Marketing
     getCampaigns: builder.query({
       query: (params) => ({ url: "/marketing/campaigns", method: "GET", params }),
-      providesTags: (result) =>
-        result ? [...result.map((c) => ({ type: "Campaign", id: c.id })), { type: "Campaign", id: "LIST" }] : [{ type: "Campaign", id: "LIST" }],
+      providesTags: (result) => {
+        const list = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+        return [...list.map((c) => ({ type: "Campaign", id: c.id || c._id })), { type: "Campaign", id: "LIST" }];
+      },
     }),
     createCampaign: builder.mutation({
       query: (body) => ({ url: "/marketing/campaigns", method: "POST", data: body }),

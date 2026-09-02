@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import {
-  DollarSign, Receipt, CreditCard, Wallet, TrendingUp, AlertCircle, FileText, Send, CheckCircle2, Search, Plus, PieChart
+  DollarSign, Receipt, CreditCard, Wallet, TrendingUp, AlertCircle, FileText, Send, CheckCircle2, Search, Plus, PieChart, Clock
 } from "lucide-react";
 import { RevenueChart } from "../../components/dashboard/Charts";
 import KpiCard from "../../components/dashboard/KpiCard";
@@ -23,25 +23,25 @@ export default function FinanceDashboard({ user }) {
   return (
     <div className="flex flex-col gap-8 pb-10">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-emerald-600 px-6 sm:px-8 py-7 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-2xl bg-primary-500 px-6 sm:px-8 py-7 text-white shadow-lg">
         <div className="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-white/20 rounded-full px-3 py-1 mb-3 backdrop-blur-sm shadow-sm border border-white/20">
-              <DollarSign size={12} /> {ROLE_LABELS[user?.role]}
+              <DollarSign size={12} /> {ROLE_LABELS[user?.role] || "Finance"} workspace
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight">
               Financial Overview
             </h1>
-            <p className="text-emerald-100 text-sm mt-2 max-w-md font-medium">
+            <p className="text-primary-100 text-sm mt-2 max-w-md font-medium">
               You have {formatCurrency(kpis.pending)} in pending invoices to collect and {formatCurrency(kpis.overdue)} overdue.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
-            <button onClick={() => navigate("/payments/new")} className="flex items-center gap-2 rounded-xl bg-white text-emerald-700 px-4 py-2.5 text-sm font-bold shadow-md hover:bg-emerald-50 transition-colors">
+            <button onClick={() => navigate("/payments")} className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-400 px-4 py-2.5 text-sm font-bold shadow-md hover:bg-primary-50 dark:hover:bg-slate-700 transition-colors">
               <Plus size={16} /> New Invoice
             </button>
-            <button onClick={() => navigate("/expenses/new")} className="flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur px-4 py-2.5 text-sm font-semibold transition-colors">
+            <button onClick={() => navigate("/expenses")} className="flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur px-4 py-2.5 text-sm font-semibold transition-colors">
               <Receipt size={16} /> Add Expense
             </button>
           </div>
@@ -113,7 +113,7 @@ export default function FinanceDashboard({ user }) {
                 <h2 className="text-lg font-bold text-slate-800">Invoice Actions</h2>
                 <Card className="p-2">
                   <div className="grid grid-cols-2 gap-2 text-center">
-                    <button onClick={() => navigate("/payments/new")} className="flex flex-col gap-2 items-center justify-center p-4 rounded-xl hover:bg-slate-50 transition-colors">
+                    <button onClick={() => navigate("/payments")} className="flex flex-col gap-2 items-center justify-center p-4 rounded-xl hover:bg-slate-50 transition-colors">
                       <FileText className="text-blue-500" size={24}/>
                       <span className="text-xs font-semibold text-slate-700">Create Invoice</span>
                     </button>
@@ -138,7 +138,7 @@ export default function FinanceDashboard({ user }) {
                 <h2 className="text-lg font-bold text-slate-800">Expense Actions</h2>
                 <Card className="p-2 border-dashed border-2 bg-slate-50">
                   <div className="grid grid-cols-2 gap-2 text-center">
-                    <button onClick={() => navigate("/expenses/new")} className="flex flex-col gap-2 items-center justify-center p-4 rounded-xl hover:bg-white hover:shadow-sm transition-all">
+                    <button onClick={() => navigate("/expenses")} className="flex flex-col gap-2 items-center justify-center p-4 rounded-xl hover:bg-white hover:shadow-sm transition-all">
                       <Receipt className="text-red-500" size={24}/>
                       <span className="text-xs font-semibold text-slate-700">Add Expense</span>
                     </button>

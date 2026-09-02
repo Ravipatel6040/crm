@@ -9,6 +9,9 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
 import Dashboard from "./pages/dashboard/Dashboard";
+import SalesDashboard from "./pages/dashboard/SalesDashboard";
+import MarketingDashboard from "./pages/dashboard/MarketingDashboard";
+import FinanceDashboard from "./pages/dashboard/FinanceDashboard";
 import Leads from "./pages/leads/Leads";
 import Clients from "./pages/clients/Clients";
 import ClientDetail from "./pages/clients/ClientDetail";
@@ -19,6 +22,7 @@ import Campaigns from "./pages/marketing/Campaigns";
 import LeadSources from "./pages/marketing/LeadSources";
 import MarketingAnalytics from "./pages/marketing/MarketingAnalytics";
 import Communication from "./pages/communication/Communication";
+import FollowUps from "./pages/followups/FollowUps";
 import Documents from "./pages/documents/Documents";
 import ActivityLogs from "./pages/activity/ActivityLogs";
 import Reports from "./pages/reports/Reports";
@@ -65,8 +69,12 @@ export default function App() {
               }
             >
               <Route path="/dashboard" element={<Protected routeKey="dashboard"><Dashboard /></Protected>} />
+              <Route path="/sales" element={<Protected routeKey="sales"><SalesDashboard /></Protected>} />
+              <Route path="/sales/dashboard" element={<Navigate to="/sales" replace />} />
 
               <Route path="/leads" element={<Protected routeKey="leads"><Leads /></Protected>} />
+              <Route path="/my-leads" element={<Navigate to="/leads" replace />} />
+              <Route path="/follow-ups" element={<Protected routeKey="follow_ups"><FollowUps /></Protected>} />
               <Route path="/clients" element={<Protected routeKey="clients"><Clients /></Protected>} />
               <Route path="/clients/:id" element={<Protected routeKey="clients"><ClientDetail /></Protected>} />
               
@@ -74,12 +82,14 @@ export default function App() {
               <Route path="/projects/:id" element={<Protected routeKey="projects"><ProjectDetail /></Protected>} />
               <Route path="/tasks" element={<Protected routeKey="tasks"><Placeholder title="Tasks" /></Protected>} />
 
-              <Route path="/marketing" element={<Protected routeKey="marketing"><Placeholder title="Marketing Dashboard" /></Protected>} />
+              <Route path="/marketing" element={<Protected routeKey="marketing"><MarketingDashboard /></Protected>} />
+              <Route path="/marketing/dashboard" element={<Navigate to="/marketing" replace />} />
               <Route path="/marketing/campaigns" element={<Protected routeKey="campaigns"><Campaigns /></Protected>} />
               <Route path="/marketing/lead-sources" element={<Protected routeKey="lead_sources"><LeadSources /></Protected>} />
               <Route path="/marketing/analytics" element={<Protected routeKey="analytics"><MarketingAnalytics /></Protected>} />
 
-              <Route path="/finance" element={<Protected routeKey="finance"><Placeholder title="Finance Dashboard" /></Protected>} />
+              <Route path="/finance" element={<Protected routeKey="finance"><FinanceDashboard /></Protected>} />
+              <Route path="/finance/dashboard" element={<Navigate to="/finance" replace />} />
               <Route path="/payments" element={<Protected routeKey="payments"><Payments /></Protected>} />
               <Route path="/expenses" element={<Protected routeKey="expenses"><Placeholder title="Expenses" /></Protected>} />
 

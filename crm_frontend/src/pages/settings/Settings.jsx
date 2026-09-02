@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Lock, Palette, Building2, Users } from "lucide-react";
+import { Bell, Lock, Palette, Building2, Users, Eye, EyeOff } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import { Card, Field, Input, Select, Button, Tabs, useToast } from "../../components/common";
 import { useAuth } from "../../context/AuthContext";
@@ -26,6 +26,7 @@ export default function Settings() {
 
   const [newUserForm, setNewUserForm] = useState({ email: "", password: "", role: "BD_SALES" });
   const [creatingUser, setCreatingUser] = useState(false);
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
   const TABS = user?.role === "ADMIN" ? [...BASE_TABS, "User Management"] : BASE_TABS;
 
@@ -146,12 +147,24 @@ export default function Settings() {
                 />
               </Field>
               <Field label="Password" required>
-                <Input 
-                  type="password" 
-                  placeholder="••••••••"
-                  value={newUserForm.password}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                />
+                <div className="relative">
+                  <Input 
+                    type={showNewUserPassword ? "text" : "password"} 
+                    placeholder="••••••••"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewUserPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-md"
+                    title={showNewUserPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showNewUserPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </Field>
               <Field label="Role" required>
                 <Select

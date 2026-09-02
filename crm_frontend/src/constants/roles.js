@@ -20,13 +20,13 @@ export const ROLE_LABELS = {
 // is intentionally left out of every other role's list below.
 export const ROLE_ACCESS = {
   [ROLES.ADMIN]: [
-    "dashboard", "leads", "clients", "projects", "tasks", "marketing", "finance", "reports", "team", "settings", "audit_logs"
+    "dashboard", "sales", "leads", "follow_ups", "clients", "projects", "tasks", "marketing", "finance", "reports", "team", "settings", "audit_logs"
   ],
   [ROLES.SALES]: [
-    "dashboard", "my_leads", "follow_ups", "calls", "proposals", "clients", "reports"
+    "dashboard", "sales", "leads", "my_leads", "follow_ups", "calls", "proposals", "clients", "reports"
   ],
   [ROLES.MARKETING]: [
-    "dashboard", "campaigns", "leads", "lead_sources", "content", "analytics", "reports"
+    "dashboard", "campaigns", "leads", "lead_sources", "analytics", "reports"
   ],
   [ROLES.PROJECT_MANAGER]: [
     "dashboard", "clients", "projects", "tasks", "milestones", "requirements", "reports"

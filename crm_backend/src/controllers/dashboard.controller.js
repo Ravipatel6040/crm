@@ -145,10 +145,12 @@ export const getLeadSourcesSummary = asyncHandler(async (req, res) => {
 
 export const getSalesDashboardSummary = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  const isAdmin = req.user.role === "ADMIN";
 
-  // 1. Leads specific to the user
+  // 1. Leads overview (all for ADMIN, assigned only for sales reps)
+  const matchFilter = isAdmin ? {} : { assignedTo: userId };
   const leads = await Lead.aggregate([
-    { $match: { assignedTo: userId } },
+    { $match: matchFilter },
     {
       $group: {
         _id: "$status",
@@ -168,9 +170,7 @@ export const getSalesDashboardSummary = asyncHandler(async (req, res) => {
     if (l._id === "Lost") leadStats.lost = l.count;
   });
 
-  // 2. Revenue from deals won by the user (mock logic: assuming we check Payments for projects owned by the user, or Leads won)
-  // For now, let's just query Payments directly, assuming we'll associate payments with the sales rep in the future.
-  // Using a mock revenue sum for demonstration:
+  // 2. Revenue from deals won
   const revenue = 850000; 
 
   // 3. Today's Follow-ups
@@ -179,10 +179,11 @@ export const getSalesDashboardSummary = asyncHandler(async (req, res) => {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  const todaysFollowUps = await Lead.find({
-    assignedTo: userId,
-    nextFollowUp: { $gte: todayStart, $lte: todayEnd }
-  })
+  const followUpQuery = isAdmin
+    ? { nextFollowUp: { $gte: todayStart, $lte: todayEnd } }
+    : { assignedTo: userId, nextFollowUp: { $gte: todayStart, $lte: todayEnd } };
+
+  const todaysFollowUps = await Lead.find(followUpQuery)
   .select("name company nextFollowUp notes")
   .sort("nextFollowUp")
   .lean();
@@ -251,12 +252,15 @@ export const getMarketingDashboardSummary = asyncHandler(async (req, res) => {
 
 export const getProjectDashboardSummary = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  const isAdmin = req.user.role === "ADMIN";
 
-  // 1. My Clients (assigned to this PM)
-  const myClientsCount = await Client.countDocuments({ accountManager: userId });
+  // 1. Clients (all for ADMIN, assigned to this PM otherwise)
+  const clientFilter = isAdmin ? {} : { accountManager: userId };
+  const myClientsCount = await Client.countDocuments(clientFilter);
 
-  // 2. Projects (assigned to this PM)
-  const projects = await Project.find({ projectManager: userId }).lean();
+  // 2. Projects (all for ADMIN, assigned to this PM otherwise)
+  const projectFilter = isAdmin ? {} : { projectManager: userId };
+  const projects = await Project.find(projectFilter).lean();
   let activeProjects = 0;
   let delayedProjects = 0;
   let completedProjects = 0;

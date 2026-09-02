@@ -14,7 +14,8 @@ import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
   useDeleteProjectMutation,
-  useGetUsersQuery
+  useGetUsersQuery,
+  useGetClientsQuery,
 } from "../../store/api/apiSlice";
 
 const priorityTone = { Low: "slate", Medium: "blue", High: "amber", Critical: "red" };
@@ -26,12 +27,14 @@ export default function Projects() {
   // RTK Query Hooks
   const { data: projectsData, isLoading } = useGetProjectsQuery();
   const { data: usersData } = useGetUsersQuery();
+  const { data: clientsData } = useGetClientsQuery();
   const [createProject] = useCreateProjectMutation();
   const [updateProject] = useUpdateProjectMutation();
   const [deleteProject] = useDeleteProjectMutation();
 
   const projects = projectsData?.data ?? projectsData ?? [];
   const users = usersData?.data ?? usersData ?? [];
+  const clients = clientsData?.data ?? clientsData ?? [];
 
   const managerName = (id) => {
     return users.find((u) => u.id === id)?.name || "Unassigned";
@@ -175,6 +178,8 @@ export default function Projects() {
         onClose={() => { setModalOpen(false); setEditing(null); }}
         onSave={handleSave}
         initial={editing}
+        clients={clients}
+        users={users}
       />
 
       <ConfirmDialog

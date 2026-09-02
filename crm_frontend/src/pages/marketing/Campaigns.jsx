@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Pencil, Trash2, Megaphone, TrendingUp, Target, IndianRupee } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
-  Card, Table, Tr, Td, Badge, SearchBar, Button, ActionsMenu, ConfirmDialog,
-  EmptyState, ProgressBar, useToast, Modal, Field, Input, Select, LoadingState
+  Card, Table, Tr, Td, Badge, SearchBar, Button, ConfirmDialog,
+  EmptyState, ProgressBar, useToast, LoadingState
 } from "../../components/common";
+import CampaignFormModal from "../../components/campaigns/CampaignFormModal";
 import KpiCard from "../../components/dashboard/KpiCard";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
@@ -14,53 +16,9 @@ import {
   useDeleteCampaignMutation
 } from "../../store/api/apiSlice";
 
-const platforms = ["Google Ads", "Instagram", "Facebook", "LinkedIn", "WhatsApp", "Website", "Referral"];
-const empty = { name: "", platform: platforms[0], startDate: "", endDate: "", budget: "", spend: "0", leads: "0", qualified: "0", proposals: "0", won: "0", revenue: "0" };
-
-function CampaignFormModal({ open, onClose, onSave, initial }) {
-  const [form, setForm] = useState(empty);
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
-  useState(() => { if (open) setForm(initial ? { ...empty, ...initial } : empty); }, [open, initial]);
-
-  const submit = () => {
-    onSave({
-      ...form,
-      id: initial?.id || undefined, // Backend should generate ID if new
-      budget: Number(form.budget) || 0,
-      spend: Number(form.spend) || 0,
-      leads: Number(form.leads) || 0,
-      qualified: Number(form.qualified) || 0,
-      proposals: Number(form.proposals) || 0,
-      won: Number(form.won) || 0,
-      revenue: Number(form.revenue) || 0,
-    });
-  };
-
-  return (
-    <Modal open={open} onClose={onClose} title={initial ? "Edit Campaign" : "New Campaign"} size="lg"
-      footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit}>{initial ? "Save Changes" : "Create Campaign"}</Button></>}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Campaign Name" className="sm:col-span-2">
-          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Festive Season Push" />
-        </Field>
-        <Field label="Platform">
-          <Select value={form.platform} onChange={(e) => set("platform", e.target.value)}>
-            {platforms.map((p) => <option key={p} value={p}>{p}</option>)}
-          </Select>
-        </Field>
-        <Field label="Budget (₹)">
-          <Input type="number" value={form.budget} onChange={(e) => set("budget", e.target.value)} />
-        </Field>
-        <Field label="Start Date"><Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} /></Field>
-        <Field label="End Date"><Input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} /></Field>
-      </div>
-    </Modal>
-  );
-}
-
 export default function Campaigns() {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
   
   // RTK Query Hooks
   const { data: campaignsData, isLoading } = useGetCampaignsQuery();
@@ -68,12 +26,19 @@ export default function Campaigns() {
   const [updateCampaign] = useUpdateCampaignMutation();
   const [deleteCampaign] = useDeleteCampaignMutation();
 
-  const campaigns = campaignsData?.data ?? campaignsData ?? [];
+  const campaigns = Array.isArray(campaignsData?.data) ? campaignsData.data : Array.isArray(campaignsData) ? campaignsData : [];
 
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "true" || searchParams.get("create") === "true") {
+      setEditing(null);
+      setModalOpen(true);
+    }
+  }, [searchParams]);
 
   const filtered = useMemo(
     () => campaigns.filter((c) => !search || (c.name && c.name.toLowerCase().includes(search.toLowerCase()))),
@@ -90,7 +55,7 @@ export default function Campaigns() {
   const handleSave = async (c) => {
     try {
       if (editing) { 
-        await updateCampaign({ id: c.id, ...c }).unwrap();
+        await updateCampaign({ id: c.id || c._id, ...c }).unwrap();
         toast?.push("Campaign updated"); 
       }
       else { 
@@ -104,7 +69,7 @@ export default function Campaigns() {
   };
   const handleDelete = async () => {
     try {
-      await deleteCampaign(deleteTarget.id).unwrap();
+      await deleteCampaign(deleteTarget.id || deleteTarget._id).unwrap();
       toast?.push("Campaign deleted", "info");
       setDeleteTarget(null);
     } catch (err) {
@@ -138,7 +103,7 @@ export default function Campaigns() {
             {filtered.map((c) => {
               const roi = c.spend > 0 ? (((c.revenue - c.spend) / c.spend) * 100).toFixed(0) : 0;
               return (
-                <Tr key={c.id}>
+                <Tr key={c.id || c._id}>
                   <Td className="font-medium text-slate-700">{c.name}</Td>
                   <Td><Badge tone="slate">{c.platform}</Badge></Td>
                   <Td className="text-xs">{formatDate(c.startDate)} – {formatDate(c.endDate)}</Td>
@@ -153,12 +118,25 @@ export default function Campaigns() {
                   <Td>{c.won}</Td>
                   <Td>{formatCurrency(c.revenue)}</Td>
                   <Td><Badge tone={roi >= 0 ? "green" : "red"}>{roi}%</Badge></Td>
-                  <Td>
-                    <ActionsMenu actions={[
-                      { label: "Edit Campaign", icon: Pencil, onClick: () => { setEditing(c); setModalOpen(true); } },
-                      { divider: true },
-                      { label: "Delete Campaign", icon: Trash2, danger: true, onClick: () => setDeleteTarget(c) },
-                    ]} />
+                  <Td align="right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setEditing(c); setModalOpen(true); }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        title="Edit Campaign"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(c)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                        title="Delete Campaign"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </Td>
                 </Tr>
               );

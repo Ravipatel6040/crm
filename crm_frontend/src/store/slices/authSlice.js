@@ -27,32 +27,43 @@ function loadStoredUser() {
 const initialState = {
   user: loadStoredUser(),
   token: localStorage.getItem("accessToken") || null,
+  refreshToken: localStorage.getItem("refreshToken") || null,
   status: "idle", // idle | loading | succeeded | failed
   error: null,
 };
 
-// Tries the admin login endpoint first, then falls back to the regular
-// user login endpoint — mirrors the previous AuthContext behaviour.
+// Tries unified /auth/login first, then falls back to admin or user login
 export const loginUser = createAsyncThunk(
   "auth/login",
   async ({ email, password }, { rejectWithValue }) => {
     try {
       let userData = null;
       let accessToken = null;
+      let refreshToken = null;
 
       try {
-        const res = await api.post("/admin/login", { email, password });
-        const data = res.data.data;
-        userData = normalizeUser(data.admin || data.user);
+        const res = await api.post("/auth/login", { email, password });
+        const data = res.data.data || res.data;
+        userData = normalizeUser(data.user || data.admin);
         accessToken = data.accessToken;
+        refreshToken = data.refreshToken;
       } catch {
-        const res = await api.post("/users/login", { email, password });
-        const data = res.data.data;
-        userData = normalizeUser(data.user);
-        accessToken = data.accessToken;
+        try {
+          const res = await api.post("/admin/login", { email, password });
+          const data = res.data.data || res.data;
+          userData = normalizeUser(data.admin || data.user);
+          accessToken = data.accessToken;
+          refreshToken = data.refreshToken;
+        } catch {
+          const res = await api.post("/users/login", { email, password });
+          const data = res.data.data || res.data;
+          userData = normalizeUser(data.user);
+          accessToken = data.accessToken;
+          refreshToken = data.refreshToken;
+        }
       }
 
-      return { user: userData, token: accessToken };
+      return { user: userData, token: accessToken, refreshToken };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Invalid email or password");
     }
@@ -66,14 +77,30 @@ const authSlice = createSlice({
     setCredentials(state, action) {
       state.user = normalizeUser(action.payload.user);
       state.token = action.payload.token ?? state.token;
+      state.refreshToken = action.payload.refreshToken ?? state.refreshToken;
       state.status = "succeeded";
       state.error = null;
+      if (action.payload.token) localStorage.setItem("accessToken", action.payload.token);
+      if (action.payload.refreshToken) localStorage.setItem("refreshToken", action.payload.refreshToken);
+      if (state.user) localStorage.setItem("crm_user", JSON.stringify(state.user));
+    },
+    updateTokens(state, action) {
+      if (action.payload.accessToken) {
+        state.token = action.payload.accessToken;
+        localStorage.setItem("accessToken", action.payload.accessToken);
+      }
+      if (action.payload.refreshToken) {
+        state.refreshToken = action.payload.refreshToken;
+        localStorage.setItem("refreshToken", action.payload.refreshToken);
+      }
     },
     logout(state) {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.status = "idle";
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("crm_user");
     },
   },
@@ -88,7 +115,9 @@ const authSlice = createSlice({
         state.status = "succeeded";
         state.user = user;
         state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken || state.refreshToken;
         if (action.payload.token) localStorage.setItem("accessToken", action.payload.token);
+        if (action.payload.refreshToken) localStorage.setItem("refreshToken", action.payload.refreshToken);
         localStorage.setItem("crm_user", JSON.stringify(user));
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -98,9 +127,11 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, updateTokens, logout } = authSlice.actions;
 
 export const selectCurrentUser = (state) => state.auth.user;
+export const selectCurrentToken = (state) => state.auth.token;
+export const selectCurrentRefreshToken = (state) => state.auth.refreshToken;
 export const selectIsAuthenticated = (state) => !!state.auth.user;
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;

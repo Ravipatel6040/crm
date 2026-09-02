@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { X, Layers, ChevronsLeft } from "lucide-react";
 import { NAV_SECTIONS } from "../../constants/navigation";
 import { useUI } from "../../context/UIContext";
@@ -7,15 +7,24 @@ import { canAccess } from "../../constants/roles";
 import { classNames } from "../../utils/format";
 
 function NavItem({ item, collapsed, onNavigate }) {
+  const location = useLocation();
   const Icon = item.icon;
+
+  const currentFull = location.pathname + location.search;
+  const isSelected = item.to.includes("?")
+    ? currentFull === item.to
+    : location.pathname === item.to && !location.search;
+
   return (
     <NavLink
       to={item.to}
       onClick={onNavigate}
-      className={({ isActive }) =>
+      className={
         classNames(
           "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-ring",
-          isActive ? "bg-primary-500 text-white shadow-sm shadow-primary-500/30" : "text-slate-500 hover:bg-primary-50 dark:hover:bg-slate-800 hover:text-primary-700 dark:text-slate-400 dark:hover:text-primary-400"
+          isSelected
+            ? "bg-primary-500 text-white shadow-sm shadow-primary-500/30"
+            : "text-slate-500 hover:bg-primary-50 dark:hover:bg-slate-800 hover:text-primary-700 dark:text-slate-400 dark:hover:text-primary-400"
         )
       }
       title={collapsed ? item.label : undefined}

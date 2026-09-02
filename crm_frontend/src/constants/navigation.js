@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, Users, GitBranch, Briefcase, FolderKanban, CheckSquare,
   CreditCard, BarChart3, Megaphone, Radio, LineChart, MessageSquare,
-  FileText, Bell, ClipboardList, UserCircle, Settings, Package, Wrench, UserCog
+  FileText, Bell, ClipboardList, UserCircle, Settings, Package, Wrench, UserCog,
+  Clock, Target
 } from "lucide-react";
 
 export const NAV_SECTIONS = [
@@ -10,19 +11,24 @@ export const NAV_SECTIONS = [
     items: [
       { key: "dashboard", label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
       { key: "leads", label: "Leads", to: "/leads", icon: Users },
-      { key: "my_leads", label: "My Leads", to: "/leads", icon: Users },
-      { key: "clients", label: "Clients", to: "/clients", icon: Briefcase },
       { key: "projects", label: "Projects", to: "/projects", icon: FolderKanban },
-      { key: "tasks", label: "Tasks", to: "/tasks", icon: CheckSquare },
+      { key: "sales", label: "BD / Sales", to: "/sales", icon: Target },
       { key: "marketing", label: "Marketing", to: "/marketing", icon: Megaphone },
       { key: "finance", label: "Finance", to: "/finance", icon: CreditCard },
       { key: "reports", label: "Reports", to: "/reports", icon: BarChart3 },
     ],
   },
   {
-    title: "Sales",
+    title: "Project Management",
     items: [
-      { key: "follow_ups", label: "Follow-ups", to: "/leads", icon: Users },
+      { key: "milestones", label: "Milestones", to: "/projects", icon: FolderKanban },
+      { key: "requirements", label: "Requirements", to: "/projects", icon: FileText },
+    ],
+  },
+  {
+    title: "BD / Sales",
+    items: [
+      { key: "follow_ups", label: "Follow-ups", to: "/follow-ups", icon: Clock },
       { key: "calls", label: "Calls", to: "/communication", icon: MessageSquare },
       { key: "proposals", label: "Proposals", to: "/documents", icon: FileText },
     ],
@@ -32,15 +38,7 @@ export const NAV_SECTIONS = [
     items: [
       { key: "campaigns", label: "Campaigns", to: "/marketing/campaigns", icon: Megaphone },
       { key: "lead_sources", label: "Lead Sources", to: "/marketing/lead-sources", icon: Radio },
-      { key: "content", label: "Content", to: "/documents", icon: FileText },
       { key: "analytics", label: "Analytics", to: "/marketing/analytics", icon: LineChart },
-    ],
-  },
-  {
-    title: "Project Management",
-    items: [
-      { key: "milestones", label: "Milestones", to: "/projects", icon: FolderKanban },
-      { key: "requirements", label: "Requirements", to: "/projects", icon: FileText },
     ],
   },
   {

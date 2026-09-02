@@ -1,19 +1,27 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
 import {
   Users, Trophy, PhoneCall, Handshake, Target, ArrowRight, Sparkles, Plus, Clock, FileText, CheckCircle2, XCircle, TrendingUp
 } from "lucide-react";
 import { PipelineChart, LeadSourceChart, RevenueChart } from "../../components/dashboard/Charts";
 import KpiCard from "../../components/dashboard/KpiCard";
-import { Card, Badge, Avatar, Button, LoadingState, EmptyState } from "../../components/common";
+import { Card, Badge, Avatar, Button, LoadingState, EmptyState, useToast } from "../../components/common";
+import LeadFormModal from "../../components/leads/LeadFormModal";
 import { ROLE_LABELS } from "../../constants/roles";
 import { formatCompactCurrency, formatDate } from "../../utils/format";
 import {
-  useGetSalesDashboardSummaryQuery, useGetRevenueOverviewQuery, useGetLeadSourcesSummaryQuery
+  useGetSalesDashboardSummaryQuery, useGetRevenueOverviewQuery, useGetLeadSourcesSummaryQuery,
+  useCreateLeadMutation, useGetUsersQuery
 } from "../../store/api/apiSlice";
-import { useMemo } from "react";
 
 export default function SalesDashboard({ user }) {
   const navigate = useNavigate();
+  const toast = useToast();
+  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [createLead] = useCreateLeadMutation();
+  const { data: usersData } = useGetUsersQuery();
+  const users = usersData?.data ?? usersData ?? [];
+
   const { data: summaryWrapper, isLoading: loadingSummary } = useGetSalesDashboardSummaryQuery();
   const { data: revenueWrapper } = useGetRevenueOverviewQuery(); // Mock monthly sales
   const { data: leadSourceWrapper } = useGetLeadSourcesSummaryQuery();
@@ -25,6 +33,29 @@ export default function SalesDashboard({ user }) {
   
   const revenueData = revenueWrapper?.data || [];
   const leadSourceData = leadSourceWrapper?.data || [];
+
+  const handleSaveLead = async (formData) => {
+    try {
+      const payload = {
+        name: formData.name,
+        company: formData.company,
+        phone: formData.phone,
+        email: formData.email,
+        source: formData.source || "Website",
+        budget: Number(formData.budget) || 0,
+        assignedTo: formData.assignedTo || user?.id || user?._id,
+        status: formData.status || "New",
+        interestedIn: formData.interestedIn,
+        nextFollowUp: formData.nextFollowUp || undefined,
+        notes: formData.notes,
+      };
+      await createLead(payload).unwrap();
+      toast?.push("Lead added successfully");
+      setIsAddLeadOpen(false);
+    } catch (err) {
+      toast?.push(err?.data?.message || "Error saving lead", "error");
+    }
+  };
   
   const pipelineSteps = [
     { name: "New", status: "upcoming" },
@@ -47,17 +78,20 @@ export default function SalesDashboard({ user }) {
               <Sparkles size={12} /> {ROLE_LABELS[user?.role]} workspace
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
-              Good to see you, {user?.name?.split(" ")[0]}.
+              Good to see you, {user?.name ? user.name.split(" ")[0] : (user?.email ? user.email.split("@")[0] : "there")}.
             </h1>
             <p className="text-primary-100 text-sm mt-1.5 max-w-md">
               You have {leads.total || 0} leads assigned and {followUps.length} follow-ups scheduled for today.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
-            <button onClick={() => navigate("/leads")} className="flex items-center gap-2 rounded-xl bg-white text-primary-700 px-3.5 py-2.5 text-sm font-semibold hover:bg-primary-50">
+            <button
+              onClick={() => setIsAddLeadOpen(true)}
+              className="flex items-center gap-2 rounded-xl bg-white text-primary-700 px-3.5 py-2.5 text-sm font-semibold hover:bg-primary-50 transition-colors shadow-sm"
+            >
               <Plus size={15} /> Add Lead
             </button>
-            <button onClick={() => navigate("/communication")} className="flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur px-3.5 py-2.5 text-sm font-medium">
+            <button onClick={() => navigate("/communication")} className="flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur px-3.5 py-2.5 text-sm font-medium transition-colors">
               <PhoneCall size={15} /> Log Call
             </button>
           </div>
@@ -110,39 +144,6 @@ export default function SalesDashboard({ user }) {
                   <RevenueChart data={revenueData} />
                 </div>
               </section>
-
-              {/* Lead Management Grid */}
-              <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold text-slate-800">Lead Management</h2>
-                <Card>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center divide-x divide-y divide-slate-100 [&>div]:p-4">
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Plus className="text-primary-500 mb-1" size={20}/>
-                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Create Lead</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Target className="text-primary-500 mb-1" size={20}/>
-                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Update Status</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <PhoneCall className="text-primary-500 mb-1" size={20}/>
-                      <a href="/communication" className="text-sm text-slate-700 font-medium hover:text-primary-600">Add Call History</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Clock className="text-primary-500 mb-1" size={20}/>
-                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Schedule Meeting</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <FileText className="text-primary-500 mb-1" size={20}/>
-                      <a href="/leads" className="text-sm text-slate-700 font-medium hover:text-primary-600">Upload Proposal</a>
-                    </div>
-                    <div className="flex flex-col gap-1 items-center justify-center">
-                      <Handshake className="text-primary-500 mb-1" size={20}/>
-                      <a href="/clients" className="text-sm text-slate-700 font-medium hover:text-primary-600">Convert to Client</a>
-                    </div>
-                  </div>
-                </Card>
-              </section>
             </div>
 
             {/* Today's Follow-ups */}
@@ -177,6 +178,13 @@ export default function SalesDashboard({ user }) {
           </div>
         </>
       )}
+
+      <LeadFormModal
+        open={isAddLeadOpen}
+        onClose={() => setIsAddLeadOpen(false)}
+        onSave={handleSaveLead}
+        users={users}
+      />
     </div>
   );
 }

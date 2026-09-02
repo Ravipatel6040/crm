@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layers, Lock } from "lucide-react";
+import { Layers, Lock, Eye, EyeOff } from "lucide-react";
 import { Button, Field, Input, useToast } from "../../components/common";
 
 export default function ResetPassword() {
   const [form, setForm] = useState({ password: "", confirm: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -41,24 +43,42 @@ export default function ResetPassword() {
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Minimum 8 characters"
-                className="pl-9"
+                className="pl-9 pr-10"
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-md"
+                title={showPassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </Field>
           <Field label="Confirm new password" required error={errors.confirm}>
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
-                type="password"
+                type={showConfirm ? "text" : "password"}
                 placeholder="Re-enter password"
-                className="pl-9"
+                className="pl-9 pr-10"
                 value={form.confirm}
                 onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-md"
+                title={showConfirm ? "Hide password" : "Show password"}
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </Field>
           <Button type="submit" size="lg" loading={loading} className="w-full mt-2">

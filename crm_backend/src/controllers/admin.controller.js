@@ -159,17 +159,22 @@ export const getUsers = asyncHandler(async (req, res) => {
 
 export const updateUserAccount = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone, designation, role, status } = req.body;
+  const { name, email, phone, designation, role, status, password } = req.body;
 
-  const user = await User.findById(id);
+  const user = await User.findById(id).select("+password");
   if (!user) throw new ApiError(404, "User not found");
 
   if (name) user.name = name;
   if (email) user.email = email.toLowerCase().trim();
-  if (phone) user.phone = phone;
-  if (designation) user.designation = designation;
+  if (phone !== undefined) user.phone = phone;
+  if (designation !== undefined) user.designation = designation;
   if (role) user.role = role;
   if (status) user.status = status.toUpperCase();
+
+  if (password && typeof password === "string" && password.trim().length >= 6) {
+    user.password = await bcrypt.hash(password.trim(), 10);
+    user.refreshTokenHash = null;
+  }
 
   await user.save();
 
@@ -339,6 +344,7 @@ export const refreshAdminToken = asyncHandler(async (req, res) => {
         200,
         {
           accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
         },
         "Access token refreshed successfully"
       )
