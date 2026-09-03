@@ -62,12 +62,6 @@ export default function MarketingDashboard({ user }) {
             >
               <Plus size={15} /> New Campaign
             </button>
-            <button
-              onClick={() => navigate("/marketing/analytics")}
-              className="flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur px-3.5 py-2.5 text-sm font-medium transition-colors"
-            >
-              <BarChart2 size={15} /> Analytics
-            </button>
           </div>
         </div>
       </div>
@@ -90,11 +84,9 @@ export default function MarketingDashboard({ user }) {
             <div className="flex flex-col gap-6">
               {/* Marketing Analytics */}
               <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold text-slate-800">Marketing Analytics</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Marketing Analytics</h2>
+                <div className="grid grid-cols-1 gap-4">
                   <LeadSourceChart data={leadSources} />
-                  {/* Using Revenue chart as mock Monthly Performance */}
-                  <RevenueChart data={revenueData} /> 
                 </div>
               </section>
             </div>
@@ -102,7 +94,7 @@ export default function MarketingDashboard({ user }) {
             {/* Lead Sources Breakdown List */}
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-800">Lead Sources</h2>
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Lead Sources</h2>
               </div>
               <Card className="h-full">
                 {leadSources.length === 0 ? (
@@ -110,12 +102,12 @@ export default function MarketingDashboard({ user }) {
                 ) : (
                   <div className="flex flex-col gap-4">
                     {leadSources.map((s, idx) => (
-                      <div key={idx} className="flex gap-3 border-b border-slate-50 pb-4 last:border-0 last:pb-0 items-center justify-between">
+                      <div key={idx} className="flex gap-3 border-b border-slate-50 dark:border-slate-800 pb-4 last:border-0 last:pb-0 items-center justify-between">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-800">{s.name}</p>
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{s.name}</p>
                         </div>
-                        <div className="text-sm font-bold text-slate-600 text-right">
-                          {s.value} <span className="text-xs font-normal text-slate-400">leads</span>
+                        <div className="text-sm font-bold text-slate-600 dark:text-slate-300 text-right">
+                          {s.value} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">leads</span>
                         </div>
                       </div>
                     ))}
