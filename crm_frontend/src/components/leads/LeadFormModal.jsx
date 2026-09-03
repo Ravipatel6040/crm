@@ -6,7 +6,7 @@ import { ROLES } from "../../constants/roles";
 const emptyLead = {
   name: "", company: "", phone: "", email: "", source: leadSources[0],
   interestedIn: "", budget: "", assignedTo: "", status: pipelineStages[0],
-  nextFollowUp: "", notes: "",
+  nextFollowUp: "", notes: "", city: "", state: "", country: "",
 };
 
 export default function LeadFormModal({ open, onClose, onSave, initial, users = [] }) {
@@ -84,6 +84,15 @@ export default function LeadFormModal({ open, onClose, onSave, initial, users = 
         </Field>
         <Field label="Follow-up Date">
           <Input type="date" value={form.nextFollowUp} onChange={(e) => set("nextFollowUp", e.target.value)} />
+        </Field>
+        <Field label="City">
+          <Input value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="e.g. Mumbai" />
+        </Field>
+        <Field label="State">
+          <Input value={form.state} onChange={(e) => set("state", e.target.value)} placeholder="e.g. Maharashtra" />
+        </Field>
+        <Field label="Country">
+          <Input value={form.country} onChange={(e) => set("country", e.target.value)} placeholder="e.g. India" />
         </Field>
         <Field label="Notes" className="sm:col-span-2">
           <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Any additional context..." />

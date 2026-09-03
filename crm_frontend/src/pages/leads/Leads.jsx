@@ -10,6 +10,7 @@ import LeadFormModal from "../../components/leads/LeadFormModal";
 import LeadViewModal from "../../components/leads/LeadViewModal";
 import LeadKanbanBoard from "../../components/leads/LeadKanbanBoard";
 import LeadConvertModal from "../../components/leads/LeadConvertModal";
+import LeadLostModal from "../../components/leads/LeadLostModal";
 import { leadSources, pipelineStages } from "../../services/mockData";
 import { formatCurrency, formatDate, classNames } from "../../utils/format";
 import usePagination from "../../hooks/usePagination";
@@ -63,6 +64,7 @@ export default function Leads() {
   const [viewing, setViewing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [convertTarget, setConvertTarget] = useState(null);
+  const [lostTarget, setLostTarget] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
 
   const handleStatusChange = async (lead, newStatus) => {
@@ -70,6 +72,11 @@ export default function Leads() {
 
     if (newStatus === "Won") {
       setConvertTarget(lead);
+      return;
+    }
+
+    if (newStatus === "Lost") {
+      setLostTarget(lead);
       return;
     }
 
@@ -93,6 +100,17 @@ export default function Leads() {
       setConvertTarget(null);
     } catch (err) {
       toast?.push(err?.data?.message || "Failed to convert lead", "error");
+    }
+  };
+
+  const handleLost = async (lostReason) => {
+    try {
+      const targetId = lostTarget.id || lostTarget._id;
+      await updateLead({ id: targetId, status: "Lost", lostReason }).unwrap();
+      toast?.push("Lead marked as Lost", "success");
+      setLostTarget(null);
+    } catch (err) {
+      toast?.push(err?.data?.message || "Failed to update status", "error");
     }
   };
 
@@ -129,12 +147,15 @@ export default function Leads() {
       
       let targetId = lead.id || lead._id;
       let shouldConvert = false;
+      let shouldMarkLost = false;
 
       if (editing) {
         await updateLead({ id: targetId, ...payload }).unwrap();
         toast?.push("Lead updated successfully");
         if (payload.status === "Won" && editing.status !== "Won") {
           shouldConvert = true;
+        } else if (payload.status === "Lost" && editing.status !== "Lost") {
+          shouldMarkLost = true;
         }
       } else {
         const res = await createLead(payload).unwrap();
@@ -142,6 +163,8 @@ export default function Leads() {
         targetId = res.data?.id || res.data?._id;
         if (payload.status === "Won") {
           shouldConvert = true;
+        } else if (payload.status === "Lost") {
+          shouldMarkLost = true;
         }
       }
       
@@ -150,6 +173,8 @@ export default function Leads() {
 
       if (shouldConvert && targetId) {
         setConvertTarget({ id: targetId, ...payload });
+      } else if (shouldMarkLost && targetId) {
+        setLostTarget({ id: targetId, ...payload });
       }
     } catch (err) {
       toast?.push(err?.data?.message || "Failed to save lead", "error");
@@ -414,6 +439,14 @@ export default function Leads() {
         onConfirm={handleConvert}
         lead={convertTarget}
         isConverting={isConverting}
+      />
+
+      <LeadLostModal
+        open={!!lostTarget}
+        onClose={() => setLostTarget(null)}
+        onConfirm={handleLost}
+        lead={lostTarget}
+        isUpdating={updatingId !== null}
       />
     </div>
   );

@@ -34,6 +34,9 @@ export const createLead = async (req, res, next) => {
       source,
       interestedIn,
       budget,
+      city,
+      state,
+      country,
       assignedTo,
       status,
       nextFollowUp,
@@ -89,6 +92,9 @@ export const createLead = async (req, res, next) => {
       source: source || "Website",
       interestedIn: interestedIn || "",
       budget: Number(budget) || 0,
+      city: city || "",
+      state: state || "",
+      country: country || "",
       assignedTo: assignedTo || null,
       status: status || "New",
       nextFollowUp: nextFollowUp || null,
@@ -170,6 +176,11 @@ export const getLeads = async (req, res, next) => {
 
       budget: lead.budget,
 
+      city: lead.city,
+      state: lead.state,
+      country: lead.country,
+      lostReason: lead.lostReason,
+
       assignedTo:
         lead.assignedTo?._id?.toString() || null,
 
@@ -243,6 +254,10 @@ export const getLead = async (req, res, next) => {
         source: lead.source,
         interestedIn: lead.interestedIn,
         budget: lead.budget,
+        city: lead.city,
+        state: lead.state,
+        country: lead.country,
+        lostReason: lead.lostReason,
         assignedTo:
           lead.assignedTo?._id?.toString() || null,
         assignedUser: lead.assignedTo
@@ -282,6 +297,10 @@ export const updateLead = async (req, res, next) => {
       source,
       interestedIn,
       budget,
+      city,
+      state,
+      country,
+      lostReason,
       assignedTo,
       status,
       nextFollowUp,
@@ -306,6 +325,10 @@ export const updateLead = async (req, res, next) => {
     if (source !== undefined) updateData.source = source;
     if (interestedIn !== undefined) updateData.interestedIn = interestedIn;
     if (budget !== undefined) updateData.budget = Number(budget) || 0;
+    if (city !== undefined) updateData.city = city?.trim();
+    if (state !== undefined) updateData.state = state?.trim();
+    if (country !== undefined) updateData.country = country?.trim();
+    if (lostReason !== undefined) updateData.lostReason = lostReason?.trim();
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo || null;
     if (status !== undefined) updateData.status = status;
     if (nextFollowUp !== undefined) updateData.nextFollowUp = nextFollowUp || null;
@@ -352,7 +375,7 @@ export const updateLead = async (req, res, next) => {
       await Activity.create({
         leadId: lead._id,
         type: "System",
-        content: `Lead status updated to '${status}'`,
+        content: `Lead status updated to '${status}'${status === 'Lost' && lostReason ? ` (Reason: ${lostReason})` : ''}`,
         createdBy: req.user?._id || null,
       });
     }

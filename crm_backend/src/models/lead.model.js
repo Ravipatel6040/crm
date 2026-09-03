@@ -61,6 +61,24 @@ const leadSchema = new mongoose.Schema(
       min: 0,
     },
 
+    city: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    state: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    country: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -87,6 +105,12 @@ const leadSchema = new mongoose.Schema(
     },
 
     notes: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    lostReason: {
       type: String,
       trim: true,
       default: "",

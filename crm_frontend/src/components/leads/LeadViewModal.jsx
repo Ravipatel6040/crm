@@ -3,7 +3,7 @@ import {
 } from "../common";
 import { formatCurrency, formatDate } from "../../utils/format";
 import {
-  Mail, Phone, Building2, Calendar, DollarSign, Tag, UserCheck, FileText, Pencil, Trash2
+  Mail, Phone, Building2, Calendar, DollarSign, Tag, UserCheck, FileText, Pencil, Trash2, MapPin, ArchiveX
 } from "lucide-react";
 import LeadTimeline from "./LeadTimeline";
 
@@ -100,6 +100,20 @@ export default function LeadViewModal({ open, onClose, lead, userName, assigneeN
           </div>
         </div>
 
+        {lead.status === "Lost" && lead.lostReason && (
+          <div className="p-4 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+              <ArchiveX size={15} />
+            </div>
+            <div>
+              <p className="text-xs text-red-500 font-semibold uppercase tracking-wider">Reason for Loss</p>
+              <p className="font-medium text-red-700 dark:text-red-300">
+                {lead.lostReason}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Info Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Contact Details */}
@@ -142,6 +156,18 @@ export default function LeadViewModal({ open, onClose, lead, userName, assigneeN
                 ) : (
                   <p className="text-slate-500">—</p>
                 )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 text-sm">
+              <div className="h-8 w-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                <MapPin size={15} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-slate-400">Location</p>
+                <p className="font-medium text-slate-700 dark:text-slate-300 truncate">
+                  {[lead.city, lead.state, lead.country].filter(Boolean).join(", ") || "—"}
+                </p>
               </div>
             </div>
           </div>
