@@ -104,6 +104,15 @@ export const apiSlice = createApi({
     getLeadSources: builder.query({
       query: () => ({ url: "/leads/sources", method: "GET" }),
     }),
+    getLeadActivities: builder.query({
+      query: (id) => ({ url: `/leads/${id}/activities`, method: "GET" }),
+      providesTags: (r, e, id) => [{ type: "ActivityLog", id: `LEAD-${id}` }],
+    }),
+    createLeadActivity: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/leads/${id}/activities`, method: "POST", data: body }),
+      invalidatesTags: (r, e, { id }) => [{ type: "ActivityLog", id: `LEAD-${id}` }],
+    }),
+
 
     // ---------------------------------------------------------------- 4. Pipeline
     getDeals: builder.query({
@@ -467,7 +476,7 @@ export const apiSlice = createApi({
 export const {
   useLoginMutation, useLogoutMutation, useForgotPasswordMutation, useResetPasswordMutation, useFetchMeQuery, useLazyFetchMeQuery,
   useGetUsersQuery, useGetUserQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation, useChangeUserPasswordMutation, useGetUserActivityQuery,
-  useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useGetLeadSourcesQuery,
+  useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation,
   useGetDealsQuery, useUpdateDealStageMutation, useGetPipelineStagesQuery,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,
   useGetProjectsQuery, useGetProjectQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation,

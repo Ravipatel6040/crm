@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Lead } from "../models/lead.model.js";
+import { Activity } from "../models/activity.model.js";
 import { createNotificationHelper } from "./notification.controller.js";
 
 const generateLeadId = async () => {
@@ -96,6 +97,13 @@ export const createLead = async (req, res, next) => {
     const populatedLead = await Lead.findById(lead._id)
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email");
+
+    await Activity.create({
+      leadId: lead._id,
+      type: "System",
+      content: "Lead created",
+      createdBy: req.user?._id || null,
+    });
 
     const notifyUser = lead.assignedTo || req.user?._id;
     if (notifyUser) {
@@ -338,6 +346,25 @@ export const updateLead = async (req, res, next) => {
       "name email role"
     );
 
+    if (status !== undefined) {
+      await Activity.create({
+        leadId: lead._id,
+        type: "System",
+        content: `Lead status updated to '${status}'`,
+        createdBy: req.user?._id || null,
+      });
+    }
+
+    if (assignedTo !== undefined) {
+      const assignedName = lead.assignedTo?.name || "Unassigned";
+      await Activity.create({
+        leadId: lead._id,
+        type: "System",
+        content: `Lead assigned to ${assignedName}`,
+        createdBy: req.user?._id || null,
+      });
+    }
+
     const targetUser = lead.assignedTo?._id || lead.assignedTo || req.user?._id;
     if (targetUser) {
       if (status === "Won") {
@@ -415,6 +442,70 @@ export const deleteLead = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: "Lead deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// ======================================================
+// ACTIVITIES
+// ======================================================
+
+export const getLeadActivities = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    let leadId = id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      const lead = await Lead.findOne({ leadId: id });
+      if (!lead) return res.status(404).json({ success: false, message: "Lead not found" });
+      leadId = lead._id;
+    }
+
+    const activities = await Activity.find({ leadId })
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: activities,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createLeadActivity = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type, content } = req.body;
+
+    if (!type || !content) {
+      return res.status(400).json({ success: false, message: "Type and content are required" });
+    }
+
+    let leadId = id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      const lead = await Lead.findOne({ leadId: id });
+      if (!lead) return res.status(404).json({ success: false, message: "Lead not found" });
+      leadId = lead._id;
+    }
+
+    const activity = await Activity.create({
+      leadId,
+      type,
+      content,
+      createdBy: req.user?._id || null,
+    });
+
+    const populatedActivity = await Activity.findById(activity._id).populate("createdBy", "name email");
+
+    return res.status(201).json({
+      success: true,
+      message: "Activity created successfully",
+      data: populatedActivity,
     });
   } catch (error) {
     next(error);

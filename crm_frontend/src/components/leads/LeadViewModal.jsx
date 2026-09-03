@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from "../../utils/format";
 import {
   Mail, Phone, Building2, Calendar, DollarSign, Tag, UserCheck, FileText, Pencil, Trash2
 } from "lucide-react";
+import LeadTimeline from "./LeadTimeline";
 
 export default function LeadViewModal({ open, onClose, lead, userName, assigneeName, onEdit, onDelete }) {
   if (!lead) return null;
@@ -39,7 +40,7 @@ export default function LeadViewModal({ open, onClose, lead, userName, assigneeN
       onClose={onClose}
       title="Lead Profile & Details"
       subtitle={`ID: ${lead.id || lead._id || "—"}`}
-      size="lg"
+      size="xl"
       footer={
         <div className="flex items-center justify-between w-full">
           {onDelete ? (
@@ -74,7 +75,9 @@ export default function LeadViewModal({ open, onClose, lead, userName, assigneeN
         </div>
       }
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column: Lead Info */}
+        <div className="flex flex-col gap-6 lg:w-1/2 xl:w-[55%]">
         {/* Header Hero Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60">
           <div className="flex items-center gap-3.5">
@@ -212,6 +215,12 @@ export default function LeadViewModal({ open, onClose, lead, userName, assigneeN
             </p>
           </div>
         )}
+        </div>
+
+        {/* Right Column: Timeline */}
+        <div className="lg:w-1/2 xl:w-[45%] h-[600px] lg:h-auto">
+          <LeadTimeline leadId={lead.id || lead._id} />
+        </div>
       </div>
     </Modal>
   );

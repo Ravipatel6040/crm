@@ -6,6 +6,8 @@ import {
   getLead,
   updateLead,
   deleteLead,
+  getLeadActivities,
+  createLeadActivity,
 } from "../controllers/lead.controller.js";
 
 import {
@@ -85,6 +87,22 @@ router.delete(
     "BD_SALES"
   ),
   deleteLead
+);
+
+// Get all lead activities
+router.get(
+  "/:id/activities",
+  authenticate,
+  authorizeRoles("ADMIN", "BD_SALES", "MARKETING", "PROJECT_MANAGER"),
+  getLeadActivities
+);
+
+// Create lead activity
+router.post(
+  "/:id/activities",
+  authenticate,
+  authorizeRoles("ADMIN", "BD_SALES", "MARKETING", "PROJECT_MANAGER"),
+  createLeadActivity
 );
 
 export { router as leadRoutes };
