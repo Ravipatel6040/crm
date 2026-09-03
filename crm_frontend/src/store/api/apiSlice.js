@@ -93,6 +93,10 @@ export const apiSlice = createApi({
       query: ({ id, ...body }) => ({ url: `/leads/${id}`, method: "PATCH", data: body }),
       invalidatesTags: (r, e, { id }) => [{ type: "Lead", id }, { type: "Lead", id: "LIST" }, "Dashboard"],
     }),
+    convertLead: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/leads/${id}/convert`, method: "POST", data: body }),
+      invalidatesTags: (r, e, { id }) => [{ type: "Lead", id }, { type: "Lead", id: "LIST" }, { type: "Client", id: "LIST" }, { type: "Project", id: "LIST" }, "Dashboard", { type: "ActivityLog", id: `LEAD-${id}` }],
+    }),
     assignLead: builder.mutation({
       query: ({ id, assignedTo }) => ({ url: `/leads/${id}`, method: "PATCH", data: { assignedTo } }),
       invalidatesTags: (r, e, { id }) => [{ type: "Lead", id }, { type: "Lead", id: "LIST" }],
@@ -484,7 +488,7 @@ export const apiSlice = createApi({
 export const {
   useLoginMutation, useLogoutMutation, useForgotPasswordMutation, useResetPasswordMutation, useFetchMeQuery, useLazyFetchMeQuery,
   useGetUsersQuery, useGetUserQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation, useChangeUserPasswordMutation, useGetUserActivityQuery,
-  useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation,
+  useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useConvertLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation,
   useGetDealsQuery, useUpdateDealStageMutation, useGetPipelineStagesQuery,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,
   useGetProjectsQuery, useGetProjectQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation,

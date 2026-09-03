@@ -9,6 +9,7 @@ import {
 import LeadFormModal from "../../components/leads/LeadFormModal";
 import LeadViewModal from "../../components/leads/LeadViewModal";
 import LeadKanbanBoard from "../../components/leads/LeadKanbanBoard";
+import LeadConvertModal from "../../components/leads/LeadConvertModal";
 import { leadSources, pipelineStages } from "../../services/mockData";
 import { formatCurrency, formatDate, classNames } from "../../utils/format";
 import usePagination from "../../hooks/usePagination";
@@ -18,7 +19,8 @@ import {
   useCreateLeadMutation,
   useUpdateLeadMutation,
   useDeleteLeadMutation,
-  useGetUsersQuery
+  useGetUsersQuery,
+  useConvertLeadMutation
 } from "../../store/api/apiSlice";
 
 export default function Leads() {
@@ -33,6 +35,7 @@ export default function Leads() {
   const [createLead] = useCreateLeadMutation();
   const [updateLead] = useUpdateLeadMutation();
   const [deleteLead] = useDeleteLeadMutation();
+  const [convertLead, { isLoading: isConverting }] = useConvertLeadMutation();
 
   const leads = leadsData?.data ?? leadsData ?? [];
   const users = usersData?.data ?? usersData ?? [];
@@ -59,10 +62,17 @@ export default function Leads() {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [convertTarget, setConvertTarget] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
 
   const handleStatusChange = async (lead, newStatus) => {
     if (lead.status === newStatus) return;
+
+    if (newStatus === "Won") {
+      setConvertTarget(lead);
+      return;
+    }
+
     const targetId = lead.id || lead._id;
     setUpdatingId(targetId);
     try {
@@ -72,6 +82,17 @@ export default function Leads() {
       toast?.push(err?.data?.message || "Failed to update status", "error");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleConvert = async ({ createProject, projectName }) => {
+    try {
+      const targetId = convertTarget.id || convertTarget._id;
+      await convertLead({ id: targetId, createProject, projectName }).unwrap();
+      toast?.push("Lead successfully converted to Client!", "success");
+      setConvertTarget(null);
+    } catch (err) {
+      toast?.push(err?.data?.message || "Failed to convert lead", "error");
     }
   };
 
@@ -105,17 +126,33 @@ export default function Leads() {
       if (isSales && !payload.assignedTo) {
         payload.assignedTo = user?.id || user?._id;
       }
+      
+      let targetId = lead.id || lead._id;
+      let shouldConvert = false;
+
       if (editing) {
-        await updateLead({ id: lead.id || lead._id, ...payload }).unwrap();
+        await updateLead({ id: targetId, ...payload }).unwrap();
         toast?.push("Lead updated successfully");
+        if (payload.status === "Won" && editing.status !== "Won") {
+          shouldConvert = true;
+        }
       } else {
-        await createLead(payload).unwrap();
-        toast?.push("Lead added successfully");
+        const res = await createLead(payload).unwrap();
+        toast?.push("Lead created successfully");
+        targetId = res.data?.id || res.data?._id;
+        if (payload.status === "Won") {
+          shouldConvert = true;
+        }
       }
+      
       setModalOpen(false);
       setEditing(null);
+
+      if (shouldConvert && targetId) {
+        setConvertTarget({ id: targetId, ...payload });
+      }
     } catch (err) {
-      toast?.push(err?.data?.message || "Error saving lead", "error");
+      toast?.push(err?.data?.message || "Failed to save lead", "error");
     }
   };
 
@@ -369,6 +406,14 @@ export default function Leads() {
         onConfirm={handleDelete}
         title={`Delete ${deleteTarget?.name}?`}
         description="This lead and all its associated data will be permanently removed."
+      />
+
+      <LeadConvertModal
+        open={!!convertTarget}
+        onClose={() => setConvertTarget(null)}
+        onConfirm={handleConvert}
+        lead={convertTarget}
+        isConverting={isConverting}
       />
     </div>
   );

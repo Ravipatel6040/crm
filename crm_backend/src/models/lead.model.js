@@ -103,6 +103,11 @@ const leadSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

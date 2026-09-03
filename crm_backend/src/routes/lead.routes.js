@@ -10,6 +10,7 @@ import {
   createLeadActivity,
   updateLeadActivity,
   deleteLeadActivity,
+  convertLead,
 } from "../controllers/lead.controller.js";
 
 import {
@@ -121,6 +122,14 @@ router.delete(
   authenticate,
   authorizeRoles("ADMIN", "BD_SALES", "MARKETING", "PROJECT_MANAGER"),
   deleteLeadActivity
+);
+
+// Convert lead to client
+router.post(
+  "/:id/convert",
+  authenticate,
+  authorizeRoles("ADMIN", "BD_SALES", "MARKETING"),
+  convertLead
 );
 
 export { router as leadRoutes };

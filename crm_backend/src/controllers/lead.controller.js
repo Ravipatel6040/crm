@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { Lead } from "../models/lead.model.js";
 import { Activity } from "../models/activity.model.js";
+import { Client } from "../models/client.model.js";
+import { Project } from "../models/project.model.js";
 import { createNotificationHelper } from "./notification.controller.js";
 
 const generateLeadId = async () => {
@@ -149,7 +151,7 @@ export const createLead = async (req, res, next) => {
 
 export const getLeads = async (req, res, next) => {
   try {
-    const leads = await Lead.find()
+    const leads = await Lead.find({ isArchived: { $ne: true } })
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
@@ -564,6 +566,81 @@ export const deleteLeadActivity = async (req, res, next) => {
       success: true,
       message: "Activity deleted successfully",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================================================
+// CONVERT LEAD TO CLIENT
+// ======================================================
+
+export const convertLead = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { createProject, projectName } = req.body;
+
+    const lead = await Lead.findOne({ 
+      $or: [{ leadId: id }, { _id: mongoose.Types.ObjectId.isValid(id) ? id : null }]
+    });
+
+    if (!lead) {
+      return res.status(404).json({ success: false, message: "Lead not found" });
+    }
+
+    if (lead.isArchived) {
+      return res.status(400).json({ success: false, message: "Lead is already archived/converted" });
+    }
+
+    // 1. Create the Client
+    const client = await Client.create({
+      name: lead.name,
+      company: lead.company,
+      email: lead.email,
+      phone: lead.phone,
+      accountManager: lead.assignedTo,
+      notes: `Converted from Lead (${lead.leadId || lead._id}).\n\nOriginal Notes: ${lead.notes}`,
+    });
+
+    // 2. Create the Project (optional)
+    let project = null;
+    if (createProject && projectName?.trim()) {
+      project = await Project.create({
+        name: projectName.trim(),
+        client: client._id,
+        clientName: client.company || client.name,
+        projectManager: lead.assignedTo,
+        status: "Planning",
+        stage: "Planning",
+        createdBy: req.user?._id || null,
+        notes: `Created from Lead conversion.`,
+      });
+    }
+
+    // 3. Update the Lead
+    lead.status = "Won";
+    lead.isArchived = true;
+    lead.updatedBy = req.user?._id || null;
+    await lead.save();
+
+    // 4. Log Activity
+    await Activity.create({
+      leadId: lead._id,
+      type: "System",
+      content: `Lead converted to Client${project ? ' and Project created' : ''}`,
+      createdBy: req.user?._id || null,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead successfully converted to Client",
+      data: {
+        client,
+        project,
+        lead,
+      }
+    });
+
   } catch (error) {
     next(error);
   }
