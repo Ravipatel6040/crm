@@ -54,6 +54,7 @@ export default function LeadTimeline({ leadId }) {
   };
 
   const handleDeleteActivity = async (activityId) => {
+    setDeleteTargetId(null); // Close the modal immediately for better UX
     setIsDeletingId(activityId);
     try {
       await deleteActivity({ id: leadId, activityId }).unwrap();
@@ -62,7 +63,6 @@ export default function LeadTimeline({ leadId }) {
       toast?.push(err?.data?.message || "Failed to delete activity", "error");
     } finally {
       setIsDeletingId(null);
-      setDeleteTargetId(null);
     }
   };
 

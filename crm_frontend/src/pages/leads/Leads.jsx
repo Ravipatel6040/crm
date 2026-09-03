@@ -179,8 +179,7 @@ export default function Leads() {
         </div>
       </div>
 
-      <Card padding="p-4 sm:p-5">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-5">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           {isSales && (
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-fit">
               <button
@@ -241,6 +240,10 @@ export default function Leads() {
             </div>
           </div>
         </div>
+      </div>
+
+      <Card padding="p-0 sm:p-0 overflow-hidden">
+        <div className="p-4 sm:p-5">
 
         {isLoading ? (
           <LoadingState label="Loading leads..." />
@@ -335,6 +338,7 @@ export default function Leads() {
         {viewMode === "list" && (
           <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={pageSize} />
         )}
+        </div>
       </Card>
 
       <LeadViewModal

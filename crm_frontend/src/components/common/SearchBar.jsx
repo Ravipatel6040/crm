@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { classNames } from "../../utils/format";
 
 export function SearchBar({ value, onChange, placeholder = "Search...", className = "" }) {
@@ -23,20 +23,26 @@ export function SearchBar({ value, onChange, placeholder = "Search...", classNam
   );
 }
 
-export function FilterSelect({ value, onChange, options, label }) {
+export function FilterSelect({ value, onChange, options, label, className = "" }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 py-2.5 text-sm text-slate-600 dark:text-slate-300 focus:border-primary-400 focus-ring cursor-pointer"
-    >
-      <option value="">{label}</option>
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
+    <div className={classNames("relative", className)}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-9 py-2.5 text-sm text-slate-600 dark:text-slate-300 focus:border-primary-400 focus-ring cursor-pointer outline-none"
+      >
+        <option value="">{label}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        size={14}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+      />
+    </div>
   );
 }
 
