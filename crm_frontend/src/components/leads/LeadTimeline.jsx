@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation } from "../../store/api/apiSlice";
-import { Button, Avatar, useToast } from "../common";
+import { Button, Avatar, useToast, ConfirmDialog } from "../common";
 import { formatDate } from "../../utils/format";
 import { Phone, Mail, Calendar, StickyNote, Settings, Loader2, Edit2, Trash2, X, Check } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -27,6 +27,7 @@ export default function LeadTimeline({ leadId }) {
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [isDeletingId, setIsDeletingId] = useState(null);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const activities = data?.data || [];
 
@@ -53,7 +54,6 @@ export default function LeadTimeline({ leadId }) {
   };
 
   const handleDeleteActivity = async (activityId) => {
-    if (!window.confirm("Are you sure you want to delete this activity?")) return;
     setIsDeletingId(activityId);
     try {
       await deleteActivity({ id: leadId, activityId }).unwrap();
@@ -62,6 +62,7 @@ export default function LeadTimeline({ leadId }) {
       toast?.push(err?.data?.message || "Failed to delete activity", "error");
     } finally {
       setIsDeletingId(null);
+      setDeleteTargetId(null);
     }
   };
 
@@ -159,7 +160,7 @@ export default function LeadTimeline({ leadId }) {
                               <Edit2 size={12} />
                             </button>
                             <button 
-                              onClick={() => handleDeleteActivity(activity._id || activity.id)}
+                              onClick={() => setDeleteTargetId(activity._id || activity.id)}
                               disabled={isDeletingId === (activity._id || activity.id)}
                               className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors disabled:opacity-50"
                               title="Delete activity"
@@ -210,6 +211,14 @@ export default function LeadTimeline({ leadId }) {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={() => handleDeleteActivity(deleteTargetId)}
+        title="Delete Activity?"
+        description="Are you sure you want to delete this activity? This action cannot be undone."
+      />
     </div>
   );
 }
