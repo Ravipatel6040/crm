@@ -240,8 +240,6 @@ export default function Leads() {
             </div>
           </div>
         </div>
-      </div>
-
       <Card padding="p-0 sm:p-0 overflow-hidden">
         <div className="p-4 sm:p-5">
 

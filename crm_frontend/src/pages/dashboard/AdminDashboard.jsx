@@ -35,32 +35,46 @@ export default function AdminDashboard({ user }) {
   return (
     <div className="flex flex-col gap-8 pb-10">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-primary-500 px-6 sm:px-8 py-7 text-white">
-        <div className="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="relative overflow-hidden rounded-2xl px-6 sm:px-10 py-8 sm:py-10 text-white shadow-lg bg-slate-900 border border-slate-800">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 z-0 opacity-70 mix-blend-screen"
+          style={{
+            backgroundImage: 'url(/images/dashboard-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        {/* Gradient Overlay for Text Readability */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent" />
+        
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 z-0 h-full w-1/2 bg-gradient-to-l from-primary-500/20 to-transparent mix-blend-overlay" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-white/15 rounded-full px-3 py-1 mb-3">
-              <Sparkles size={12} /> {ROLE_LABELS[user?.role]} workspace
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary-500/20 text-primary-200 border border-primary-500/30 rounded-full px-3 py-1 mb-4 shadow-sm backdrop-blur-md">
+              <Sparkles size={12} className="text-primary-300" /> {ROLE_LABELS[user?.role]} workspace
             </span>
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
               Welcome back, {(user?.name && user?.name !== "User") ? user.name.split(" ")[0] : "Admin"}.
             </h1>
-            <p className="text-primary-100 text-sm mt-1.5 max-w-md">
+            <p className="text-slate-300 text-sm sm:text-base mt-2 max-w-lg font-medium drop-shadow">
               Manage every account, team and module in CRM Gangatara from one place.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <button
               onClick={() => navigate("/accounts")}
-              className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-400 px-3.5 py-2.5 text-sm font-semibold transition-colors hover:bg-primary-50 dark:hover:bg-slate-700"
+              className="flex items-center gap-2 rounded-xl bg-white text-slate-900 px-4 py-2.5 text-sm font-bold transition-all hover:bg-slate-100 hover:scale-105 hover:shadow-xl shadow-lg shadow-white/10 active:scale-95"
             >
-              <UserPlus size={15} /> Create Account
+              <UserPlus size={16} /> Create Account
             </button>
             <button
               onClick={() => navigate("/reports")}
-              className="flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur px-3.5 py-2.5 text-sm font-medium transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-slate-800/60 border border-slate-700 hover:bg-slate-700/80 hover:border-slate-600 text-white backdrop-blur-md px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-lg active:scale-95"
             >
-              <BarChart3 size={15} /> View Reports
+              <BarChart3 size={16} /> View Reports
             </button>
           </div>
         </div>
