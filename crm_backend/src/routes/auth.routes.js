@@ -6,6 +6,7 @@ import {
   refreshToken,
   logout,
   getMe,
+  changePassword,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 
@@ -18,5 +19,6 @@ router.post("/refresh", refreshToken);
 // Protected auth routes
 router.post("/logout", authenticate, logout);
 router.get("/me", authenticate, getMe);
+router.put("/change-password", authenticate, changePassword);
 
 export { router as authRoutes };

@@ -58,7 +58,18 @@ export default function Reports() {
   const totalPending = payments.reduce((s, p) => s + (p.pending || 0), 0);
   const totalOverdue = payments.filter((p) => p.status === "Overdue").reduce((s, p) => s + (p.pending || 0), 0);
 
-  const sourceData = leadSources.map((s) => ({ name: s, value: leads.filter((l) => l.source === s).length || 1 }));
+  let sourceData = leadSources
+    .map((s) => ({ name: s, value: leads.filter((l) => l.source === s).length }))
+    .filter((s) => s.value > 0);
+    
+  if (sourceData.length === 0) {
+    sourceData = [{ name: "No Leads", value: 1 }];
+  }
+
+  const campSpend = campaigns.reduce((s, c) => s + (c.spend || 0), 0);
+  const campRev = campaigns.reduce((s, c) => s + (c.revenue || 0), 0);
+  const campLeads = campaigns.reduce((s, c) => s + (c.leads || 0), 0);
+  const campRoi = campSpend > 0 ? Math.round(((campRev - campSpend) / campSpend) * 100) : 0;
 
   return (
     <div>
@@ -83,7 +94,7 @@ export default function Reports() {
               </div>
               <Table columns={["Lead", "Company", "Status", "Budget"]}>
                 {leads.slice(0, 6).map((l) => (
-                  <Tr key={l.id}>
+                  <Tr key={l.id || l._id}>
                     <Td className="font-medium">{l.name}</Td>
                     <Td>{l.company}</Td>
                     <Td><Badge>{l.status}</Badge></Td>
@@ -97,17 +108,19 @@ export default function Reports() {
           {tab === "Marketing" && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <KpiCard icon={Megaphone} title="Campaign Spend" value={formatCurrency(campaigns.reduce((s, c) => s + c.spend, 0))} tone="amber" />
-                <KpiCard icon={TrendingUp} title="Revenue Generated" value={formatCurrency(campaigns.reduce((s, c) => s + c.revenue, 0))} tone="green" />
-                <KpiCard icon={Target} title="Total Campaign Leads" value={campaigns.reduce((s, c) => s + c.leads, 0)} tone="primary" />
-                <KpiCard icon={Percent} title="Avg ROI" value={`${Math.round(campaigns.reduce((s, c) => s + ((c.revenue - c.spend) / c.spend) * 100, 0) / campaigns.length)}%`} tone="green" />
+                <KpiCard icon={Megaphone} title="Campaign Spend" value={formatCurrency(campSpend)} tone="amber" />
+                <KpiCard icon={TrendingUp} title="Revenue Generated" value={formatCurrency(campRev)} tone="green" />
+                <KpiCard icon={Target} title="Total Campaign Leads" value={campLeads} tone="primary" />
+                <KpiCard icon={Percent} title="Avg ROI" value={`${campRoi}%`} tone="green" />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={sourceData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
-                        {sourceData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                        {sourceData.map((entry, i) => (
+                          <Cell key={`cell-${i}`} fill={entry.name === "No Leads" ? "#e2e8f0" : PALETTE[i % PALETTE.length]} />
+                        ))}
                       </Pie>
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       <Tooltip />
@@ -116,7 +129,7 @@ export default function Reports() {
                 </div>
                 <Table columns={["Campaign", "Platform", "Leads", "Revenue"]}>
                   {campaigns.map((c) => (
-                    <Tr key={c.id}>
+                    <Tr key={c.id || c._id}>
                       <Td className="font-medium">{c.name}</Td>
                       <Td><Badge tone="slate">{c.platform}</Badge></Td>
                       <Td>{c.leads}</Td>

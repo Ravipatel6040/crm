@@ -245,3 +245,27 @@ export const getMe = asyncHandler(async (req, res) => {
     )
   );
 });
+
+// ─── PUT /api/v1/auth/change-password ─────────────────────────────────────────
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, "Current and new passwords are required");
+  }
+
+  const user = await User.findById(req.user._id).select("+password");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid current password");
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  return res.status(200).json(new ApiResponse(200, null, "Password changed successfully"));
+});
