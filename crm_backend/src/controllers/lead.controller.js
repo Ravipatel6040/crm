@@ -511,3 +511,60 @@ export const createLeadActivity = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateLeadActivity = async (req, res, next) => {
+  try {
+    const { activityId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ success: false, message: "Content is required" });
+    }
+
+    const activity = await Activity.findById(activityId);
+    if (!activity) {
+      return res.status(404).json({ success: false, message: "Activity not found" });
+    }
+
+    if (activity.type === "System") {
+      return res.status(403).json({ success: false, message: "System activities cannot be edited" });
+    }
+
+    activity.content = content;
+    await activity.save();
+
+    const populatedActivity = await Activity.findById(activity._id).populate("createdBy", "name email");
+
+    return res.status(200).json({
+      success: true,
+      message: "Activity updated successfully",
+      data: populatedActivity,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteLeadActivity = async (req, res, next) => {
+  try {
+    const { activityId } = req.params;
+    
+    const activity = await Activity.findById(activityId);
+    if (!activity) {
+      return res.status(404).json({ success: false, message: "Activity not found" });
+    }
+
+    if (activity.type === "System") {
+      return res.status(403).json({ success: false, message: "System activities cannot be deleted" });
+    }
+
+    await activity.deleteOne();
+
+    return res.status(200).json({
+      success: true,
+      message: "Activity deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

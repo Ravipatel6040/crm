@@ -8,6 +8,8 @@ import {
   deleteLead,
   getLeadActivities,
   createLeadActivity,
+  updateLeadActivity,
+  deleteLeadActivity,
 } from "../controllers/lead.controller.js";
 
 import {
@@ -103,6 +105,22 @@ router.post(
   authenticate,
   authorizeRoles("ADMIN", "BD_SALES", "MARKETING", "PROJECT_MANAGER"),
   createLeadActivity
+);
+
+// Update lead activity
+router.put(
+  "/:id/activities/:activityId",
+  authenticate,
+  authorizeRoles("ADMIN", "BD_SALES", "MARKETING", "PROJECT_MANAGER"),
+  updateLeadActivity
+);
+
+// Delete lead activity
+router.delete(
+  "/:id/activities/:activityId",
+  authenticate,
+  authorizeRoles("ADMIN", "BD_SALES", "MARKETING", "PROJECT_MANAGER"),
+  deleteLeadActivity
 );
 
 export { router as leadRoutes };

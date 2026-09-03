@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Eye, ChevronDown } from "lucide-react";
+import { Plus, Eye, ChevronDown, List, LayoutGrid, TrendingUp, Users, AlertCircle, Mail, Phone } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
   Card, Table, Tr, Td, Badge, Avatar, SearchBar, FilterSelect, Button,
@@ -8,6 +8,7 @@ import {
 } from "../../components/common";
 import LeadFormModal from "../../components/leads/LeadFormModal";
 import LeadViewModal from "../../components/leads/LeadViewModal";
+import LeadKanbanBoard from "../../components/leads/LeadKanbanBoard";
 import { leadSources, pipelineStages } from "../../services/mockData";
 import { formatCurrency, formatDate, classNames } from "../../utils/format";
 import usePagination from "../../hooks/usePagination";
@@ -53,6 +54,7 @@ export default function Leads() {
   }, [searchParams]);
 
   const [salesTab, setSalesTab] = useState("all");
+  const [viewMode, setViewMode] = useState("list");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
@@ -127,8 +129,11 @@ export default function Leads() {
     }
   };
 
+  const totalPipelineValue = leads.reduce((acc, l) => acc + (l.budget || 0), 0);
+  const actionRequiredLeads = leads.filter(l => l.status === "Follow-up" || (l.nextFollowUp && new Date(l.nextFollowUp) <= new Date())).length;
+
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title={isSales ? "My Leads" : "Leads"}
         subtitle={
@@ -143,80 +148,133 @@ export default function Leads() {
         }
       />
 
-      <Card padding="p-4 sm:p-5">
-        {isSales && (
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 w-fit">
-            <button
-              type="button"
-              onClick={() => setSalesTab("all")}
-              className={classNames(
-                "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all",
-                salesTab === "all"
-                  ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
-              )}
-            >
-              All Leads ({leads.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSalesTab("assigned")}
-              className={classNames(
-                "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all",
-                salesTab === "assigned"
-                  ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
-              )}
-            >
-              Assigned to Me (
-              {
-                leads.filter(
-                  (l) =>
-                    l.assignedTo === user?.id ||
-                    l.assignedTo === user?._id ||
-                    l.assignedUser?.id === user?.id ||
-                    l.assignedUser?.id === user?._id
-                ).length
-              }
-              )
-            </button>
+      {/* Top Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/60 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <Users size={20} />
           </div>
-        )}
+          <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-0.5">Total Leads</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-none">{leads.length}</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/60 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+            <TrendingUp size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-0.5">Active Pipeline</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-none">{formatCurrency(totalPipelineValue)}</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/60 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="h-10 w-10 rounded-full bg-rose-50 dark:bg-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+            <AlertCircle size={20} />
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-0.5">Action Required</p>
+            <p className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-none">{actionRequiredLeads} <span className="text-sm font-normal text-slate-500">leads</span></p>
+          </div>
+        </div>
+      </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search by name or company..." className="flex-1" />
-          <div className="flex gap-3">
-            <FilterSelect value={sourceFilter} onChange={setSourceFilter} options={leadSources} label="All Sources" />
-            <FilterSelect value={statusFilter} onChange={setStatusFilter} options={pipelineStages} label="All Statuses" />
+      <Card padding="p-4 sm:p-5">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-5">
+          {isSales && (
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-fit">
+              <button
+                type="button"
+                onClick={() => setSalesTab("all")}
+                className={classNames(
+                  "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex-1 sm:flex-none",
+                  salesTab === "all"
+                    ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                )}
+              >
+                All Leads ({leads.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSalesTab("assigned")}
+                className={classNames(
+                  "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex-1 sm:flex-none",
+                  salesTab === "assigned"
+                    ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                )}
+              >
+                Assigned to Me
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto ml-auto">
+            <SearchBar value={search} onChange={setSearch} placeholder="Search leads..." className="w-full sm:w-64" />
+            <div className="flex gap-2 items-center">
+              <FilterSelect value={sourceFilter} onChange={setSourceFilter} options={leadSources} label="Sources" />
+              <FilterSelect value={statusFilter} onChange={setStatusFilter} options={pipelineStages} label="Statuses" />
+              
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shrink-0 ml-1">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={classNames(
+                    "p-1.5 rounded-md transition-all",
+                    viewMode === "list" ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  )}
+                  title="List View"
+                >
+                  <List size={16} />
+                </button>
+                <button
+                  onClick={() => setViewMode("kanban")}
+                  className={classNames(
+                    "p-1.5 rounded-md transition-all",
+                    viewMode === "kanban" ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  )}
+                  title="Kanban View"
+                >
+                  <LayoutGrid size={16} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         {isLoading ? (
           <LoadingState label="Loading leads..." />
+        ) : viewMode === "kanban" ? (
+          <LeadKanbanBoard leads={filtered} onStatusChange={handleStatusChange} setViewing={setViewing} />
         ) : pageItems.length === 0 ? (
           <EmptyState title="No leads found" description="Try adjusting your search or filters, or add a new lead." />
         ) : (
-          <Table columns={["Lead", "Company", "Source", "Interested In", "Budget", "Assigned To", "Status", "Next Follow-up", "Actions"]}>
+          <Table columns={["Lead Info", "Source", "Interested In", "Budget", "Assigned To", "Status", "Next Follow-up", "Actions"]}>
             {pageItems.map((l) => (
-              <Tr key={l.id || l._id}>
+              <Tr key={l.id || l._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group cursor-pointer" onClick={() => setViewing(l)}>
                 <Td>
                   <div className="flex items-center gap-3">
                     <Avatar name={l.name} size="sm" />
                     <div>
-                      <button
-                        onClick={() => setViewing(l)}
-                        className="font-medium text-slate-800 dark:text-slate-100 hover:text-primary-600 dark:hover:text-primary-400 hover:underline text-left transition-colors"
-                      >
+                      <span className="font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                         {l.name}
-                      </button>
-                      <p className="text-xs text-slate-400">{l.id || l._id}</p>
+                      </span>
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{l.company}</p>
+                      
+                      <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-400">
+                        {l.email && <span className="flex items-center gap-1"><Mail size={10}/> {l.email}</span>}
+                        {l.phone && <span className="flex items-center gap-1"><Phone size={10}/> {l.phone}</span>}
+                      </div>
                     </div>
                   </div>
                 </Td>
-                <Td className="font-medium text-slate-600 dark:text-slate-300">{l.company}</Td>
                 <Td><Badge tone="slate">{l.source}</Badge></Td>
-                <Td className="max-w-[160px] truncate">{l.interestedIn || "-"}</Td>
-                <Td className="font-semibold text-slate-700 dark:text-slate-200">{formatCurrency(l.budget)}</Td>
+                <Td className="max-w-[140px] truncate">{l.interestedIn || "-"}</Td>
+                <Td>
+                  <div className="font-semibold text-slate-700 dark:text-slate-200 bg-slate-100/50 dark:bg-slate-800/50 px-2 py-1 rounded-md inline-block">
+                    {formatCurrency(l.budget)}
+                  </div>
+                </Td>
                 <Td>{userName(l.assignedTo)}</Td>
                 <Td onClick={(e) => e.stopPropagation()}>
                   <div className="relative inline-flex items-center">
@@ -274,7 +332,9 @@ export default function Leads() {
           </Table>
         )}
 
-        <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={pageSize} />
+        {viewMode === "list" && (
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={pageSize} />
+        )}
       </Card>
 
       <LeadViewModal

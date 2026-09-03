@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useGetLeadActivitiesQuery, useCreateLeadActivityMutation } from "../../store/api/apiSlice";
+import { useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation } from "../../store/api/apiSlice";
 import { Button, Avatar, useToast } from "../common";
 import { formatDate } from "../../utils/format";
-import { Phone, Mail, Calendar, StickyNote, Settings, Loader2 } from "lucide-react";
+import { Phone, Mail, Calendar, StickyNote, Settings, Loader2, Edit2, Trash2, X, Check } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const activityConfig = {
   Call: { icon: Phone, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/30" },
@@ -14,11 +15,18 @@ const activityConfig = {
 
 export default function LeadTimeline({ leadId }) {
   const toast = useToast();
+  const { user } = useAuth();
   const { data, isLoading, isError } = useGetLeadActivitiesQuery(leadId, { skip: !leadId });
   const [createActivity, { isLoading: isCreating }] = useCreateLeadActivityMutation();
+  const [updateActivity] = useUpdateLeadActivityMutation();
+  const [deleteActivity] = useDeleteLeadActivityMutation();
 
   const [activeType, setActiveType] = useState("Note");
   const [content, setContent] = useState("");
+  
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  const [isDeletingId, setIsDeletingId] = useState(null);
 
   const activities = data?.data || [];
 
@@ -30,6 +38,30 @@ export default function LeadTimeline({ leadId }) {
       toast?.push("Activity logged successfully", "success");
     } catch (err) {
       toast?.push(err?.data?.message || "Failed to log activity", "error");
+    }
+  };
+
+  const handleUpdateActivity = async (activityId) => {
+    if (!editContent.trim()) return;
+    try {
+      await updateActivity({ id: leadId, activityId, content: editContent }).unwrap();
+      setEditingId(null);
+      toast?.push("Activity updated successfully", "success");
+    } catch (err) {
+      toast?.push(err?.data?.message || "Failed to update activity", "error");
+    }
+  };
+
+  const handleDeleteActivity = async (activityId) => {
+    if (!window.confirm("Are you sure you want to delete this activity?")) return;
+    setIsDeletingId(activityId);
+    try {
+      await deleteActivity({ id: leadId, activityId }).unwrap();
+      toast?.push("Activity deleted successfully", "success");
+    } catch (err) {
+      toast?.push(err?.data?.message || "Failed to delete activity", "error");
+    } finally {
+      setIsDeletingId(null);
     }
   };
 
@@ -95,6 +127,7 @@ export default function LeadTimeline({ leadId }) {
             {activities.map((activity) => {
               const Conf = activityConfig[activity.type] || activityConfig.System;
               const Icon = Conf.icon;
+              const canEdit = activity.type !== 'System' && (activity.createdBy?._id === user?._id || activity.createdBy?.id === user?.id || user?.role === 'ADMIN');
               
               return (
                 <div key={activity._id || activity.id} className="relative pl-6">
@@ -104,7 +137,7 @@ export default function LeadTimeline({ leadId }) {
                   </div>
                   
                   {/* Content Bubble */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-700/60">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-700/60 group">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <Avatar name={activity.createdBy?.name || "System"} size="sm" className="h-5 w-5 text-[10px]" />
@@ -115,13 +148,61 @@ export default function LeadTimeline({ leadId }) {
                           {activity.type}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 shrink-0">
-                        {formatDate(activity.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {canEdit && editingId !== (activity._id || activity.id) && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            <button 
+                              onClick={() => { setEditingId(activity._id || activity.id); setEditContent(activity.content); }}
+                              className="p-1 text-slate-400 hover:text-primary-500 rounded transition-colors"
+                              title="Edit activity"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteActivity(activity._id || activity.id)}
+                              disabled={isDeletingId === (activity._id || activity.id)}
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors disabled:opacity-50"
+                              title="Delete activity"
+                            >
+                              {isDeletingId === (activity._id || activity.id) ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                            </button>
+                          </div>
+                        )}
+                        <span className="text-[10px] text-slate-400 shrink-0">
+                          {formatDate(activity.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                    <p className={`text-sm ${activity.type === 'System' ? 'text-slate-500 italic' : 'text-slate-700 dark:text-slate-300'}`}>
-                      {activity.content}
-                    </p>
+                    
+                    {editingId === (activity._id || activity.id) ? (
+                      <div className="mt-2 animate-in fade-in zoom-in-95 duration-200">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
+                          rows={2}
+                          autoFocus
+                        />
+                        <div className="flex justify-end gap-1 mt-2">
+                          <button 
+                            onClick={() => setEditingId(null)} 
+                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                          >
+                            <X size={12} /> Cancel
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateActivity(activity._id || activity.id)} 
+                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded transition-colors shadow-sm"
+                          >
+                            <Check size={12} /> Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className={`text-sm ${activity.type === 'System' ? 'text-slate-500 italic' : 'text-slate-700 dark:text-slate-300'} whitespace-pre-wrap`}>
+                        {activity.content}
+                      </p>
+                    )}
                   </div>
                 </div>
               );
