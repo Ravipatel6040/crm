@@ -2,9 +2,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import { User } from "../models/user.model.js";
+import { getPermissionsForRole } from "../models/settings.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { logAudit } from "../utils/audit.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -53,6 +55,10 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid email or password");
   }
 
+  if (user.isArchived) {
+    throw new ApiError(403, "This account has been removed. Please contact administrator.");
+  }
+
   if (user.status !== "ACTIVE") {
     throw new ApiError(403, "Account is inactive or suspended. Please contact administrator.");
   }
@@ -87,7 +93,19 @@ export const login = asyncHandler(async (req, res) => {
     phone: user.phone,
     status: user.status,
     lastLoginAt: user.lastLoginAt,
+    // Permission matrix lives in the DB so the frontend and backend agree.
+    permissions: await getPermissionsForRole(user.role),
   };
+
+  await logAudit(req, {
+    entityType: "Auth",
+    entityId: user._id,
+    entityLabel: user.name,
+    action: "LOGIN",
+    content: `${userDisplayName} signed in`,
+    // No req.user during login — name the actor explicitly.
+    actor: { _id: user._id, name: userDisplayName, role: user.role },
+  });
 
   return res
     .cookie("accessToken", accessToken, accessCookieOptions)
@@ -240,6 +258,7 @@ export const getMe = asyncHandler(async (req, res) => {
         phone: user.phone,
         status: user.status,
         lastLoginAt: user.lastLoginAt,
+        permissions: await getPermissionsForRole(user.role),
       },
       "Current user retrieved successfully"
     )
@@ -264,8 +283,20 @@ export const changePassword = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid current password");
   }
 
+  if (String(newPassword).trim().length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters");
+  }
+
   user.password = await bcrypt.hash(newPassword, 10);
   await user.save();
+
+  await logAudit(req, {
+    entityType: "User",
+    entityId: user._id,
+    entityLabel: user.name,
+    action: "PASSWORD_RESET",
+    content: `${user.name} changed their own password`,
+  });
 
   return res.status(200).json(new ApiResponse(200, null, "Password changed successfully"));
 });

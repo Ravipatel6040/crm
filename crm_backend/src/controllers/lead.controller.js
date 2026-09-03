@@ -157,10 +157,44 @@ export const createLead = async (req, res, next) => {
 
 export const getLeads = async (req, res, next) => {
   try {
-    const leads = await Lead.find({ isArchived: { $ne: true } })
+    const { page, limit, search, status, source, assignedTo } = req.query;
+
+    const filter = { isArchived: { $ne: true } };
+
+    if (status) filter.status = status;
+    if (source) filter.source = source;
+    if (assignedTo && mongoose.Types.ObjectId.isValid(assignedTo)) {
+      filter.assignedTo = assignedTo;
+    }
+    if (search) {
+      const term = String(search).trim();
+      filter.$or = [
+        { name: { $regex: term, $options: "i" } },
+        { company: { $regex: term, $options: "i" } },
+        { email: { $regex: term, $options: "i" } },
+        { phone: { $regex: term, $options: "i" } },
+      ];
+    }
+
+    // Pagination is opt-in: callers that need the whole set (the Kanban
+    // board, dashboards, reports) simply omit `page`.
+    const isPaged = page !== undefined;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.min(200, Math.max(1, parseInt(limit, 10) || 25));
+
+    const query = Lead.find(filter)
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
+
+    if (isPaged) {
+      query.skip((pageNum - 1) * pageSize).limit(pageSize);
+    }
+
+    const [leads, total] = await Promise.all([
+      query.exec(),
+      isPaged ? Lead.countDocuments(filter) : Promise.resolve(null),
+    ]);
 
     const formattedLeads = leads.map((lead) => ({
       id: lead.leadId || lead._id.toString(),
@@ -207,6 +241,12 @@ export const getLeads = async (req, res, next) => {
       success: true,
       count: formattedLeads.length,
       data: formattedLeads,
+      ...(isPaged && {
+        page: pageNum,
+        limit: pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      }),
     });
   } catch (error) {
     next(error);

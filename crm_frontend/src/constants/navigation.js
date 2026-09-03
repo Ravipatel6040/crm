@@ -45,6 +45,7 @@ export const NAV_SECTIONS = [
     title: "Administration",
     items: [
       { key: "team", label: "Team", to: "/accounts", icon: UserCog },
+      { key: "audit", label: "Audit Log", to: "/activity", icon: ClipboardList },
       { key: "settings", label: "Settings", to: "/settings", icon: Settings },
     ],
   },

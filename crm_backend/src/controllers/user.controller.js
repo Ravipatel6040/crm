@@ -1,10 +1,13 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 import { User } from "../models/user.model.js";
+import { Activity } from "../models/activity.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { logAudit } from "../utils/audit.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -183,4 +186,130 @@ export const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("refreshToken", refreshCookieOptions)
     .status(200)
     .json(new ApiResponse(200, null, "Logout successful"));
+});
+
+// ─── GET /api/v1/users/:id ────────────────────────────────────────────────────
+
+export const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  const user = await User.findById(id).select("-password -refreshTokenHash");
+  if (!user) throw new ApiError(404, "User not found");
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        id: user._id.toString(),
+        _id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        designation: user.designation,
+        role: user.role,
+        status: user.status,
+        isArchived: user.isArchived,
+        lastLoginAt: user.lastLoginAt,
+        createdAt: user.createdAt,
+      },
+      "User fetched successfully"
+    )
+  );
+});
+
+// ─── PATCH /api/v1/users/:id/password ─────────────────────────────────────────
+// A user changes their own password (current password required); an admin may
+// set another user's password without it.
+
+export const changeUserPassword = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  if (!newPassword || String(newPassword).trim().length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters");
+  }
+
+  const isSelf = String(req.user._id) === String(id);
+  const isAdmin = req.user.role === "ADMIN";
+
+  if (!isSelf && !isAdmin) {
+    throw new ApiError(403, "You can only change your own password");
+  }
+
+  const user = await User.findById(id).select("+password");
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (isSelf) {
+    if (!currentPassword) {
+      throw new ApiError(400, "Current password is required");
+    }
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) throw new ApiError(401, "Current password is incorrect");
+  }
+
+  user.password = await bcrypt.hash(String(newPassword).trim(), 10);
+  // Force a fresh sign-in everywhere after a password change.
+  user.refreshTokenHash = null;
+  await user.save();
+
+  await logAudit(req, {
+    entityType: "User",
+    entityId: user._id,
+    entityLabel: user.name,
+    action: "PASSWORD_RESET",
+    content: isSelf
+      ? `${user.name} changed their own password`
+      : `Password reset for ${user.name} (${user.email})`,
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Password updated successfully"));
+});
+
+// ─── GET /api/v1/users/:id/activity ───────────────────────────────────────────
+// Everything this user did, from the audit trail.
+
+export const getUserActivity = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  const isSelf = String(req.user._id) === String(id);
+  if (!isSelf && req.user.role !== "ADMIN") {
+    throw new ApiError(403, "Not allowed to view this user's activity");
+  }
+
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+
+  const activities = await Activity.find({ createdBy: id })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      activities.map((a) => ({
+        id: a._id.toString(),
+        type: a.type,
+        action: a.action,
+        entityType: a.entityType,
+        entityLabel: a.entityLabel,
+        content: a.content,
+        createdAt: a.createdAt,
+      })),
+      "User activity fetched successfully"
+    )
+  );
 });

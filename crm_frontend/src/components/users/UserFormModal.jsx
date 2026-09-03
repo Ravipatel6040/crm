@@ -3,7 +3,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { Modal, Button, Field, Input, Select } from "../common";
 import { ROLES, ROLE_LABELS } from "../../constants/roles";
 
-const CREATABLE_ROLES = [ROLES.SALES, ROLES.MARKETING, ROLES.PROJECT_MANAGER, ROLES.FINANCE];
+// Admins can create other admins here — the public /admin/create bootstrap
+// endpoint closes itself after the first administrator exists.
+const CREATABLE_ROLES = [
+  ROLES.SALES, ROLES.MARKETING, ROLES.PROJECT_MANAGER, ROLES.FINANCE, ROLES.ADMIN,
+];
 
 const emptyUser = {
   name: "", email: "", phone: "", designation: "", role: ROLES.SALES, status: "ACTIVE", password: "",
@@ -67,7 +71,11 @@ export default function UserFormModal({ open, onClose, onSave, initial, saving }
         <Field label="Designation">
           <Input value={form.designation} onChange={(e) => set("designation", e.target.value)} placeholder="e.g. BD Executive" />
         </Field>
-        <Field label="Role / Department" required>
+        <Field
+          label="Role / Department"
+          required
+          hint={form.role === ROLES.ADMIN ? "Admins have unrestricted access to every module." : undefined}
+        >
           <Select value={form.role} onChange={(e) => set("role", e.target.value)}>
             {CREATABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </Select>

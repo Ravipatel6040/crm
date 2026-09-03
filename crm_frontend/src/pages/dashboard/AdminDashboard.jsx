@@ -1,238 +1,508 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users, UserPlus, Handshake, FolderKanban, ArrowRight, Sparkles, Target,
-  Receipt, BarChart3, ShieldCheck, DollarSign, Clock, ChevronRight
+  UserPlus, ArrowRight, Target, Receipt, BarChart3, ShieldCheck,
+  TrendingUp, TrendingDown, Users, FolderKanban, Clock, AlertTriangle,
+  Trophy, Banknote, CircleDollarSign, Activity, Settings2, ChevronRight,
 } from "lucide-react";
-import { LeadSourceChart } from "../../components/dashboard/Charts";
+import { LeadSourceChart, RevenueChart } from "../../components/dashboard/Charts";
 import KpiCard from "../../components/dashboard/KpiCard";
-import { Card, Badge, Avatar, Button, LoadingState, Table, Tr, Td, ProgressBar } from "../../components/common";
-import { ROLE_LABELS, ROLES } from "../../constants/roles";
-import { formatCompactCurrency, formatCurrency, formatDate } from "../../utils/format";
 import {
-  useGetDashboardSummaryQuery, useGetUsersQuery,
-  useGetPipelineSummaryQuery, useGetLeadSourcesSummaryQuery,
-  useGetLeadsQuery
+  Card, CardHeader, Badge, Avatar, Button, LoadingState, EmptyState, ProgressBar,
+} from "../../components/common";
+import { ROLE_LABELS } from "../../constants/roles";
+import { formatCompactCurrency, classNames } from "../../utils/format";
+import {
+  useGetDashboardSummaryQuery,
+  useGetPipelineSummaryQuery,
+  useGetLeadSourcesSummaryQuery,
+  useGetRevenueOverviewQuery,
+  useGetTeamPerformanceQuery,
 } from "../../store/api/apiSlice";
+
+// Stable identity so useMemo deps don't churn while a query is loading.
+const EMPTY = [];
+
+// Stages that represent live pipeline, in funnel order. Won/Lost are outcomes
+// and are shown separately rather than as funnel steps.
+const FUNNEL_STAGES = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation"];
+
+const stageAccent = {
+  New: "bg-sky-500",
+  Contacted: "bg-violet-500",
+  "Follow-up": "bg-amber-500",
+  Proposal: "bg-primary-500",
+  Negotiation: "bg-fuchsia-500",
+};
+
+function SectionHeading({ eyebrow, title, description, action }) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        {eyebrow && (
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-600 dark:text-primary-400">
+            {eyebrow}
+          </p>
+        )}
+        <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">{title}</h2>
+        {description && (
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>
+        )}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/** Proportional horizontal funnel — replaces the flat grid of stage boxes. */
+function PipelineFunnel({ stages, onSelect }) {
+  const max = Math.max(...stages.map((s) => s.count), 1);
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {stages.map((s) => {
+        const pct = Math.round((s.count / max) * 100);
+        return (
+          <button
+            key={s.stage}
+            type="button"
+            onClick={() => onSelect(s.stage)}
+            className="group grid grid-cols-[7.5rem_1fr_3rem] items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/30"
+          >
+            <span className="truncate text-xs font-medium text-slate-600 dark:text-slate-300">
+              {s.stage}
+            </span>
+            <span className="relative h-7 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-700/40">
+              <span
+                className={classNames(
+                  "absolute inset-y-0 left-0 rounded-md transition-all duration-500 group-hover:brightness-110",
+                  stageAccent[s.stage] || "bg-slate-400"
+                )}
+                style={{ width: `${Math.max(pct, s.count > 0 ? 4 : 0)}%` }}
+              />
+            </span>
+            <span className="text-right text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100">
+              {s.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TeamLeaderboard({ rows, onSelect }) {
+  const topValue = Math.max(...rows.map((r) => r.wonValue), 1);
+
+  return (
+    <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+      {rows.map((rep, i) => (
+        <div
+          key={rep.id}
+          className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 cursor-pointer rounded-lg px-2 -mx-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/30"
+          onClick={() => onSelect(rep)}
+        >
+          <span
+            className={classNames(
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+              i === 0
+                ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+            )}
+          >
+            {i + 1}
+          </span>
+          <Avatar name={rep.name} size="sm" />
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2">
+              <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                {rep.name}
+              </p>
+              {rep.overdueFollowUps > 0 && (
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                  <Clock size={9} /> {rep.overdueFollowUps} overdue
+                </span>
+              )}
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              <ProgressBar
+                value={(rep.wonValue / topValue) * 100}
+                tone={i === 0 ? "amber" : "primary"}
+                className="h-1.5 max-w-[10rem]"
+              />
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                {rep.won}/{rep.total} won
+              </span>
+            </div>
+          </div>
+
+          <div className="shrink-0 text-right">
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+              {formatCompactCurrency(rep.wonValue)}
+            </p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              {rep.conversionRate}% conversion
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminDashboard({ user }) {
   const navigate = useNavigate();
+
   const { data: summaryWrapper, isLoading: loadingSummary } = useGetDashboardSummaryQuery();
-  const { data: usersData } = useGetUsersQuery();
   const { data: pipelineData } = useGetPipelineSummaryQuery();
   const { data: leadSourceData } = useGetLeadSourcesSummaryQuery();
-  const { data: leadsData } = useGetLeadsQuery();
+  const { data: revenueData } = useGetRevenueOverviewQuery();
+  const { data: teamData, isLoading: loadingTeam } = useGetTeamPerformanceQuery();
 
   const summary = summaryWrapper?.data || summaryWrapper || {};
   const business = summary.business || {};
   const leads = summary.leads || {};
   const clients = summary.clients || {};
   const projects = summary.projects || {};
-  const finance = summary.finance || {};
 
-  const users = usersData?.data ?? usersData ?? [];
+  const team = teamData?.data ?? teamData ?? [];
+  const pipeline = pipelineData?.data ?? pipelineData ?? EMPTY;
+
+  const funnelStages = useMemo(() => {
+    const byStage = Object.fromEntries(
+      (Array.isArray(pipeline) ? pipeline : []).map((p) => [p.stage || p.name, p.count ?? p.value ?? 0])
+    );
+    return FUNNEL_STAGES.map((stage) => ({ stage, count: byStage[stage] ?? 0 }));
+  }, [pipeline]);
+
+  const openPipelineValue = team.reduce((sum, r) => sum + (r.openValue || 0), 0);
+  const overdueTotal = team.reduce((sum, r) => sum + (r.overdueFollowUps || 0), 0);
+  const conversionRate = leads.total ? Math.round(((leads.won || 0) / leads.total) * 100) : 0;
+  const netIsPositive = (business.netRevenue ?? 0) >= 0;
+
+  const firstName =
+    user?.name && user.name !== "User" ? user.name.split(" ")[0] : "Admin";
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+
+  const quickActions = [
+    { label: "Add Lead", hint: "Create a new opportunity", icon: UserPlus, to: "/leads?new=true" },
+    { label: "Follow-up Queue", hint: "Calls & meetings due", icon: Clock, to: "/follow-ups" },
+    { label: "Team Accounts", hint: "Manage access", icon: Users, to: "/accounts" },
+    { label: "Audit Log", hint: "Who changed what", icon: Activity, to: "/activity" },
+    { label: "Invoices", hint: "Billing & collections", icon: Receipt, to: "/invoices" },
+    { label: "Settings", hint: "Configure the system", icon: Settings2, to: "/settings" },
+  ];
 
   return (
     <div className="flex flex-col gap-8 pb-10">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl px-6 sm:px-10 py-8 sm:py-10 text-white shadow-lg bg-slate-900 border border-slate-800">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 z-0 opacity-70 mix-blend-screen"
-          style={{
-            backgroundImage: 'url(/images/dashboard-bg.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <header
+        className={classNames(
+          "relative overflow-hidden rounded-2xl border px-6 py-7 sm:px-8",
+          "border-slate-200/80 bg-white",
+          "dark:border-slate-700/60 dark:bg-slate-800/70"
+        )}
+      >
+        {/* Layered wash — subtle in light, luminous in dark */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-primary-500/10 blur-3xl dark:bg-primary-500/20"
         />
-        {/* Gradient Overlay for Text Readability */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent" />
-        
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 z-0 h-full w-1/2 bg-gradient-to-l from-primary-500/20 to-transparent mix-blend-overlay" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-sky-400/[0.07] blur-3xl dark:bg-sky-500/10"
+        />
+
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary-500/20 text-primary-200 border border-primary-500/30 rounded-full px-3 py-1 mb-4 shadow-sm backdrop-blur-md">
-              <Sparkles size={12} className="text-primary-300" /> {ROLE_LABELS[user?.role]} workspace
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
-              Welcome back, {(user?.name && user?.name !== "User") ? user.name.split(" ")[0] : "Admin"}.
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Badge tone="primary">
+                <ShieldCheck size={12} /> {ROLE_LABELS[user?.role] || "Admin"}
+              </Badge>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{today}</span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-slate-50">
+              Good to see you, {firstName}.
             </h1>
-            <p className="text-slate-300 text-sm sm:text-base mt-2 max-w-lg font-medium drop-shadow">
-              Manage every account, team and module in CRM Gangatara from one place.
+            <p className="mt-1.5 max-w-lg text-sm text-slate-500 dark:text-slate-400">
+              {leads.total
+                ? `${leads.total} leads in the funnel, ${formatCompactCurrency(openPipelineValue)} still open.`
+                : "Your workspace is ready — add your first lead to start tracking the pipeline."}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <button
-              onClick={() => navigate("/accounts")}
-              className="flex items-center gap-2 rounded-xl bg-white text-slate-900 px-4 py-2.5 text-sm font-bold transition-all hover:bg-slate-100 hover:scale-105 hover:shadow-xl shadow-lg shadow-white/10 active:scale-95"
-            >
-              <UserPlus size={16} /> Create Account
-            </button>
-            <button
-              onClick={() => navigate("/reports")}
-              className="flex items-center gap-2 rounded-xl bg-slate-800/60 border border-slate-700 hover:bg-slate-700/80 hover:border-slate-600 text-white backdrop-blur-md px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-lg active:scale-95"
-            >
-              <BarChart3 size={16} /> View Reports
-            </button>
+
+          <div className="flex flex-wrap gap-2">
+            <Button icon={UserPlus} onClick={() => navigate("/leads?new=true")}>
+              New Lead
+            </Button>
+            <Button variant="outline" icon={Users} onClick={() => navigate("/accounts")}>
+              Team
+            </Button>
+            <Button variant="outline" icon={BarChart3} onClick={() => navigate("/reports")}>
+              Reports
+            </Button>
           </div>
         </div>
-      </div>
+
+        {/* Inline signal strip */}
+        <div className="relative mt-7 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-100 pt-5 sm:grid-cols-4 dark:border-slate-700/60">
+          {[
+            { label: "Open pipeline", value: formatCompactCurrency(openPipelineValue), icon: CircleDollarSign },
+            { label: "Won this month", value: business.dealsWonThisMonth ?? 0, icon: Trophy },
+            { label: "Active projects", value: projects.active ?? 0, icon: FolderKanban },
+            {
+              label: "Overdue follow-ups",
+              value: overdueTotal,
+              icon: AlertTriangle,
+              alert: overdueTotal > 0,
+            },
+          ].map((s) => (
+            <div key={s.label} className="flex items-center gap-2.5">
+              <s.icon
+                size={15}
+                className={s.alert ? "text-amber-500" : "text-slate-400 dark:text-slate-500"}
+              />
+              <div className="min-w-0">
+                <p
+                  className={classNames(
+                    "text-base font-bold leading-none",
+                    s.alert ? "text-amber-600 dark:text-amber-400" : "text-slate-800 dark:text-slate-100"
+                  )}
+                >
+                  {s.value}
+                </p>
+                <p className="mt-1 truncate text-[11px] text-slate-400 dark:text-slate-500">{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </header>
 
       {loadingSummary ? (
         <LoadingState label="Loading dashboard data..." />
       ) : (
         <>
-          {/* A. Business Overview */}
+          {/* ── Financial position ──────────────────────────────────────────── */}
           <section className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">A. Business Overview</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <KpiCard title="Total Revenue" value={formatCompactCurrency(business.totalRevenue ?? 0)} tone="green" />
-              <KpiCard title="Pending Payments" value={formatCompactCurrency(business.pendingPayments ?? 0)} tone="amber" />
-              <KpiCard title="Total Expenses" value={formatCompactCurrency(business.totalExpenses ?? 0)} tone="red" />
-              <KpiCard title="Net Revenue" value={formatCompactCurrency(business.netRevenue ?? 0)} tone="primary" />
+            <SectionHeading
+              eyebrow="Overview"
+              title="Financial position"
+              description="Collected, outstanding and spent — from recorded payments and expenses only."
+              action={
+                <Button size="sm" variant="ghost" icon={ChevronRight} iconPosition="right" onClick={() => navigate("/finance")}>
+                  Finance
+                </Button>
+              }
+            />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <KpiCard
+                icon={Banknote}
+                title="Total Revenue"
+                value={formatCompactCurrency(business.totalRevenue ?? 0)}
+                description={`${formatCompactCurrency(business.monthlyRevenue ?? 0)} this month`}
+                tone="green"
+                onClick={() => navigate("/payments")}
+              />
+              <KpiCard
+                icon={Clock}
+                title="Pending Payments"
+                value={formatCompactCurrency(business.pendingPayments ?? 0)}
+                description="Awaiting collection"
+                tone="amber"
+                onClick={() => navigate("/payments")}
+              />
+              <KpiCard
+                icon={Receipt}
+                title="Total Expenses"
+                value={formatCompactCurrency(business.totalExpenses ?? 0)}
+                description="All recorded spend"
+                tone="red"
+                onClick={() => navigate("/expenses")}
+              />
+              <KpiCard
+                icon={netIsPositive ? TrendingUp : TrendingDown}
+                title="Net Revenue"
+                value={formatCompactCurrency(business.netRevenue ?? 0)}
+                description={netIsPositive ? "Revenue exceeds spend" : "Spend exceeds revenue"}
+                tone={netIsPositive ? "primary" : "red"}
+              />
             </div>
-
-            <LeadSourceChart data={leadSourceData?.data ?? leadSourceData} />
           </section>
 
-          {/* B. BD / Sales Control - Full Access Control */}
+          {/* ── Trend + sources ─────────────────────────────────────────────── */}
+          <section className="grid grid-cols-1 gap-5 xl:grid-cols-5">
+            <div className="xl:col-span-3">
+              <RevenueChart
+                data={revenueData}
+                title="Revenue Trend"
+                subtitle="Last six months — paid vs pending"
+              />
+            </div>
+            <div className="xl:col-span-2">
+              <LeadSourceChart data={leadSourceData} />
+            </div>
+          </section>
+
+          {/* ── Pipeline ────────────────────────────────────────────────────── */}
           <section className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">B. BD & Sales Control</h2>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary-100 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full">
-                    <ShieldCheck size={12} /> Full Control
-                  </span>
+            <SectionHeading
+              eyebrow="Sales"
+              title="Pipeline health"
+              description="Where every open opportunity currently sits"
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => navigate("/follow-ups")}>
+                    Follow-ups
+                  </Button>
+                  <Button size="sm" onClick={() => navigate("/leads")}>
+                    Manage Leads
+                  </Button>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Lead pipelines, conversions, sales performance, and rep assignments</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => navigate("/follow-ups")}>Follow-ups</Button>
-                <Button size="sm" onClick={() => navigate("/leads")}>Manage Leads</Button>
-              </div>
-            </div>
+              }
+            />
 
-            {/* 4 Core BD / Sales Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <KpiCard title="Total Pipeline Leads" value={leads.total ?? 0} tone="slate" />
-              <KpiCard title="Active In-Progress" value={(leads.contacted || 0) + (leads.followUp || 0) + (leads.proposal || 0)} tone="amber" />
-              <KpiCard title="Deals Won" value={leads.won ?? 0} tone="green" />
-              <KpiCard title="Win Conversion Rate" value={`${leads.total ? Math.round(((leads.won || 0) / leads.total) * 100) : 0}%`} tone="primary" />
-            </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <Card>
+                <CardHeader
+                  title="Stage distribution"
+                  subtitle="Open deals only — click a stage to filter"
+                />
+                {leads.total ? (
+                  <PipelineFunnel
+                    stages={funnelStages}
+                    onSelect={(stage) => navigate(`/leads?status=${encodeURIComponent(stage)}`)}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={Target}
+                    title="No leads in the pipeline"
+                    description="Add your first lead to start tracking deal stages."
+                    action={<Button size="sm" icon={UserPlus} onClick={() => navigate("/leads?new=true")}>Add Lead</Button>}
+                  />
+                )}
+              </Card>
 
-            {/* Pipeline Stage Funnel Breakdown */}
-            <Card className="p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Target size={16} className="text-primary-500" />
-                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Deal Stages & Pipeline Flow</h3>
+              <Card>
+                <CardHeader title="Conversion outcomes" subtitle="Closed deals across all time" />
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => navigate("/leads?status=Won")}
+                    className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-left transition-colors hover:bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15"
+                  >
+                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{leads.won ?? 0}</p>
+                    <p className="mt-0.5 text-xs font-medium text-emerald-700/80 dark:text-emerald-400/90">Deals won</p>
+                  </button>
+                  <button
+                    onClick={() => navigate("/leads?status=Lost")}
+                    className="rounded-xl border border-red-100 bg-red-50/60 p-4 text-left transition-colors hover:bg-red-50 dark:border-red-500/20 dark:bg-red-500/10 dark:hover:bg-red-500/15"
+                  >
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{leads.lost ?? 0}</p>
+                    <p className="mt-0.5 text-xs font-medium text-red-600/80 dark:text-red-400/90">Deals lost</p>
+                  </button>
                 </div>
-                <button onClick={() => navigate("/leads")} className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-0.5">
-                  View Full Pipeline <ChevronRight size={13} />
+
+                <div className="mt-4 rounded-xl border border-slate-100 p-4 dark:border-slate-700/60">
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Win rate</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{conversionRate}%</span>
+                  </div>
+                  <ProgressBar value={conversionRate} tone={conversionRate >= 30 ? "green" : "amber"} />
+                  <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+                    {leads.won ?? 0} won out of {leads.total ?? 0} total leads
+                  </p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 dark:border-slate-700/60">
+                  {[
+                    { label: "Clients", value: clients.total ?? 0, to: "/clients" },
+                    { label: "New this month", value: business.newClients ?? 0, to: "/clients" },
+                    { label: "High value", value: clients.highValue ?? 0, to: "/clients" },
+                  ].map((s) => (
+                    <button key={s.label} onClick={() => navigate(s.to)} className="text-left">
+                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{s.value}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">{s.label}</p>
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </section>
+
+          {/* ── Team performance ────────────────────────────────────────────── */}
+          <section className="flex flex-col gap-4">
+            <SectionHeading
+              eyebrow="People"
+              title="Team performance"
+              description="Ranked by closed-won value, across every assigned lead"
+              action={
+                <Button size="sm" variant="ghost" icon={ChevronRight} iconPosition="right" onClick={() => navigate("/accounts")}>
+                  Team accounts
+                </Button>
+              }
+            />
+            <Card>
+              {loadingTeam ? (
+                <LoadingState label="Loading team performance..." />
+              ) : team.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No assigned leads yet"
+                  description="Assign leads to your BD/Sales team and their performance will appear here."
+                  action={<Button size="sm" onClick={() => navigate("/leads")}>Go to Leads</Button>}
+                />
+              ) : (
+                <TeamLeaderboard rows={team} onSelect={() => navigate("/leads")} />
+              )}
+            </Card>
+          </section>
+
+          {/* ── Delivery ────────────────────────────────────────────────────── */}
+          <section className="flex flex-col gap-4">
+            <SectionHeading
+              eyebrow="Delivery"
+              title="Project overview"
+              action={
+                <Button size="sm" variant="ghost" icon={ChevronRight} iconPosition="right" onClick={() => navigate("/projects")}>
+                  All projects
+                </Button>
+              }
+            />
+            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <KpiCard icon={FolderKanban} title="Active" value={projects.active ?? 0} tone="primary" onClick={() => navigate("/projects")} />
+              <KpiCard icon={Trophy} title="Completed" value={projects.completed ?? 0} tone="green" onClick={() => navigate("/projects")} />
+              <KpiCard icon={Clock} title="Pending" value={projects.pending ?? 0} tone="slate" onClick={() => navigate("/projects")} />
+              <KpiCard icon={AlertTriangle} title="Delayed" value={projects.delayed ?? 0} tone="red" onClick={() => navigate("/projects")} />
+            </div>
+          </section>
+
+          {/* ── Quick actions ───────────────────────────────────────────────── */}
+          <section className="flex flex-col gap-4">
+            <SectionHeading eyebrow="Shortcuts" title="Jump to" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+              {quickActions.map((a) => (
+                <button
+                  key={a.label}
+                  onClick={() => navigate(a.to)}
+                  className={classNames(
+                    "group flex flex-col gap-1.5 rounded-xl border p-4 text-left transition-all duration-150",
+                    "border-slate-200/80 bg-white hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-[0_8px_20px_-10px_rgba(58,86,176,0.35)]",
+                    "dark:border-slate-700/60 dark:bg-slate-800/70 dark:hover:border-primary-500/40"
+                  )}
+                >
+                  <a.icon size={17} className="text-primary-500 dark:text-primary-400" />
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">{a.label}</span>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">{a.hint}</span>
+                  <ArrowRight
+                    size={13}
+                    className="mt-0.5 text-slate-300 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-primary-500 dark:text-slate-600"
+                  />
                 </button>
-              </div>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-                <div onClick={() => navigate("/leads")} className="cursor-pointer p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-slate-500">New Leads</span>
-                    <Badge tone="primary">New</Badge>
-                  </div>
-                  <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{leads.new ?? 0}</p>
-                </div>
-
-                <div onClick={() => navigate("/leads")} className="cursor-pointer p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-slate-500">Contacted</span>
-                    <Badge tone="amber">Contact</Badge>
-                  </div>
-                  <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{leads.contacted ?? 0}</p>
-                </div>
-
-                <div onClick={() => navigate("/follow-ups")} className="cursor-pointer p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-slate-500">Follow-up</span>
-                    <Badge tone="amber">Pending</Badge>
-                  </div>
-                  <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{leads.followUp ?? 0}</p>
-                </div>
-
-                <div onClick={() => navigate("/leads?status=Proposal")} className="cursor-pointer p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-slate-500">Proposal</span>
-                    <Badge tone="primary">Review</Badge>
-                  </div>
-                  <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{leads.proposal ?? 0}</p>
-                </div>
-
-                <div onClick={() => navigate("/leads")} className="cursor-pointer p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100/50 transition-colors border border-emerald-100 dark:border-emerald-900/40">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Deals Won</span>
-                    <Badge tone="green">Closed</Badge>
-                  </div>
-                  <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{leads.won ?? 0}</p>
-                </div>
-
-                <div onClick={() => navigate("/leads")} className="cursor-pointer p-3 rounded-xl bg-red-50/50 dark:bg-red-950/20 hover:bg-red-100/50 transition-colors border border-red-100 dark:border-red-900/40">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">Lost Leads</span>
-                    <Badge tone="red">Lost</Badge>
-                  </div>
-                  <p className="text-xl font-bold text-red-600 dark:text-red-400">{leads.lost ?? 0}</p>
-                </div>
-              </div>
-            </Card>
-
-
-            {/* Executive BD / Sales Quick Action Hub */}
-            <Card className="p-5 flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-primary-500" />
-                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Executive BD / Sales Operations</h3>
-                  </div>
-                  <span className="text-xs text-slate-400">Admin Control</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                  <button onClick={() => navigate("/leads")} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-all text-left flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
-                    <UserPlus size={16} className="text-primary-500" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">Add New Lead</span>
-                    <span className="text-[11px] text-slate-400">Direct lead injection</span>
-                  </button>
-                  <button onClick={() => navigate("/follow-ups")} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-all text-left flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
-                    <Clock size={16} className="text-amber-500" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">Follow-up Queue</span>
-                    <span className="text-[11px] text-slate-400">Calls & meeting tasks</span>
-                  </button>
-                  <button onClick={() => navigate("/reports")} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-all text-left flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
-                    <BarChart3 size={16} className="text-primary-500" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">Sales Reports</span>
-                    <span className="text-[11px] text-slate-400">Conversion analytics</span>
-                  </button>
-                </div>
-            </Card>
-          </section>
-
-
-          {/* C. Project Overview */}
-          <section className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">C. Project Overview</h2>
-              <Button size="sm" variant="outline" onClick={() => navigate("/projects")}>Manage Projects</Button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <KpiCard title="Active Projects" value={projects.active ?? 0} tone="primary" />
-              <KpiCard title="Completed Projects" value={projects.completed ?? 0} tone="green" />
-              <KpiCard title="Pending Projects" value={projects.pending ?? 0} tone="slate" />
-              <KpiCard title="Delayed Projects" value={projects.delayed ?? 0} tone="red" />
+              ))}
             </div>
           </section>
-
-
-
         </>
       )}
     </div>

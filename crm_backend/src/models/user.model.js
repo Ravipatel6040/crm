@@ -68,6 +68,19 @@ const userSchema = new mongoose.Schema(
     lastLoginAt: {
       type: Date,
       default: null
+    },
+
+    // Users are archived rather than deleted so their leads, projects and
+    // audit history keep resolving to a real name.
+    isArchived: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+
+    archivedAt: {
+      type: Date,
+      default: null
     }
   },
   {

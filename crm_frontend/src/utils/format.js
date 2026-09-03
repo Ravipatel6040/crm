@@ -21,6 +21,44 @@ export function formatDate(dateStr) {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+export function formatDateTime(dateStr) {
+  if (!dateStr || dateStr === "-") return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+/** "3 hours ago" / "12 days ago" — for last-login and audit timestamps. */
+export function formatRelative(dateStr) {
+  if (!dateStr) return "Never";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "Never";
+
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+
+  const units = [
+    ["year", 31536000], ["month", 2592000], ["day", 86400],
+    ["hour", 3600], ["minute", 60],
+  ];
+  for (const [unit, secondsPerUnit] of units) {
+    const value = Math.floor(seconds / secondsPerUnit);
+    if (value >= 1) return `${value} ${unit}${value > 1 ? "s" : ""} ago`;
+  }
+  return "Just now";
+}
+
+/** Whole days since a date, or null when there is no date. */
+export function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
 export function initials(name = "") {
   return name
     .split(" ")

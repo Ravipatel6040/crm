@@ -29,6 +29,7 @@ import Notifications from "./pages/notifications/Notifications";
 import Profile from "./pages/settings/Profile";
 import Settings from "./pages/settings/Settings";
 import Accounts from "./pages/users/Accounts";
+import ActivityLogs from "./pages/activity/ActivityLogs";
 import { Wrench } from "lucide-react";
 
 function Placeholder({ title }) {
@@ -71,6 +72,9 @@ export default function App() {
               <Route path="/dashboard" element={<Protected routeKey="dashboard"><Dashboard /></Protected>} />
               <Route path="/sales" element={<Navigate to="/dashboard" replace />} />
               <Route path="/sales/dashboard" element={<Navigate to="/dashboard" replace />} />
+              {/* Login responses still hand out these role-specific paths. */}
+              <Route path="/admin/dashboard" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/pm/dashboard" element={<Navigate to="/dashboard" replace />} />
 
               <Route path="/leads" element={<Protected routeKey="leads"><Leads /></Protected>} />
               <Route path="/my-leads" element={<Navigate to="/leads" replace />} />
@@ -98,7 +102,7 @@ export default function App() {
               <Route path="/communication" element={<Protected routeKey="calls"><Communication /></Protected>} />
               <Route path="/documents" element={<Navigate to="/dashboard" replace />} />
               
-              <Route path="/activity" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/activity" element={<Protected routeKey="audit"><ActivityLogs /></Protected>} />
               <Route path="/accounts" element={<Protected routeKey="team"><Accounts /></Protected>} />
               
               <Route path="/notifications" element={<Notifications />} />

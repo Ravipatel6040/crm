@@ -14,31 +14,53 @@ export const ROLE_LABELS = {
   [ROLES.FINANCE]: "Finance",
 };
 
-// Which top-level route "keys" each role may access.
-// Admin implicitly has access to everything, including "accounts" (Team
-// Accounts / create BD-Sales, Marketing, Project & Finance logins) which
-// is intentionally left out of every other role's list below.
+/**
+ * Fallback permission matrix.
+ *
+ * The authoritative matrix now lives in the database (Settings.permissions)
+ * and arrives on the user object from /auth/login and /auth/me. This map is
+ * only used before that payload lands, or if the settings document is
+ * unreachable — so it must stay in sync with DEFAULT_PERMISSIONS in
+ * crm_backend/src/models/settings.model.js.
+ *
+ * "*" means every route key.
+ */
 export const ROLE_ACCESS = {
-  [ROLES.ADMIN]: [
-    "dashboard", "sales", "leads", "follow_ups", "clients", "projects", "tasks", "reports", "team", "settings"
-  ],
+  [ROLES.ADMIN]: ["*"],
   [ROLES.SALES]: [
-    "dashboard", "sales", "leads", "my_leads", "follow_ups", "calls", "clients", "projects", "reports"
+    "dashboard", "sales", "leads", "my_leads", "follow_ups", "calls",
+    "clients", "projects", "reports", "settings",
   ],
   [ROLES.MARKETING]: [
-    "dashboard", "campaigns", "lead_sources", "analytics", "reports"
+    "dashboard", "marketing", "campaigns", "lead_sources", "analytics",
+    "leads", "reports", "settings",
   ],
   [ROLES.PROJECT_MANAGER]: [
-    "dashboard", "clients", "projects", "tasks", "reports"
+    "dashboard", "clients", "projects", "tasks", "reports", "settings",
   ],
   [ROLES.FINANCE]: [
-    "dashboard", "invoices", "payments", "expenses", "revenue", "reports"
+    "dashboard", "finance", "invoices", "payments", "expenses", "revenue",
+    "reports", "settings",
   ],
 };
 
-export function canAccess(role, key) {
-  if (!role) return false;
-  const allowed = ROLE_ACCESS[role] || [];
+/**
+ * canAccess(roleOrUser, key)
+ *
+ * Accepts either a plain role string (legacy call sites) or the full user
+ * object. When given a user carrying a server-issued `permissions` array,
+ * that list wins over the static fallback above.
+ */
+export function canAccess(roleOrUser, key) {
+  if (!roleOrUser) return false;
+
+  const isUserObject = typeof roleOrUser === "object";
+  const role = isUserObject ? roleOrUser.role : roleOrUser;
+
+  const allowed =
+    (isUserObject && Array.isArray(roleOrUser.permissions) && roleOrUser.permissions.length
+      ? roleOrUser.permissions
+      : ROLE_ACCESS[role]) || [];
+
   return allowed.includes("*") || allowed.includes(key);
 }
-

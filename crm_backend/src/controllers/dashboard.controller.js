@@ -7,6 +7,7 @@ import { Expense } from "../models/expense.model.js";
 import { Campaign } from "../models/campaign.model.js";
 import { Task } from "../models/task.model.js";
 import { Requirement } from "../models/requirement.model.js";
+import { getSettings } from "../models/settings.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
@@ -100,18 +101,39 @@ export const getDashboardSummary = asyncHandler(async (req, res) => {
   financeStats.totalExpenses = totalExpenses;
   financeStats.netRevenue = financeStats.totalRevenue - totalExpenses;
 
+  // E. Current-month figures (real, not estimated)
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [monthlyRevenueAgg, newClientsThisMonth, wonThisMonth] = await Promise.all([
+    Payment.aggregate([
+      {
+        $match: {
+          status: "Paid",
+          $expr: {
+            $gte: [{ $ifNull: ["$paidDate", "$createdAt"] }, monthStart]
+          }
+        }
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]),
+    Client.countDocuments({ createdAt: { $gte: monthStart } }),
+    Lead.countDocuments({ status: "Won", updatedAt: { $gte: monthStart } }),
+  ]);
+
   // Compile final summary payload
   return res.status(200).json(
     new ApiResponse(200, {
       business: {
         totalRevenue: financeStats.totalRevenue,
-        monthlyRevenue: 0, // Mock for now, would group by month
+        monthlyRevenue: monthlyRevenueAgg[0]?.total || 0,
         pendingPayments: financeStats.pendingPayments,
         totalExpenses: financeStats.totalExpenses,
         netRevenue: financeStats.netRevenue,
-        newClients: clientStats.total, // mock new clients
+        newClients: newClientsThisMonth,
         lostClients: clientStats.inactive,
-        activeProjects: projectStats.active
+        activeProjects: projectStats.active,
+        dealsWonThisMonth: wonThisMonth,
       },
       leads: leadStats,
       clients: clientStats,
@@ -121,37 +143,101 @@ export const getDashboardSummary = asyncHandler(async (req, res) => {
   );
 });
 
+// ─── GET /api/v1/dashboard/team-performance ───────────────────────────────────
+// Per-rep pipeline, conversion and value. This is what an owner opens the
+// dashboard to see and it was previously only available in aggregate.
+
+export const getTeamPerformance = asyncHandler(async (req, res) => {
+  const rows = await Lead.aggregate([
+    { $match: { assignedTo: { $ne: null } } },
+    {
+      $group: {
+        _id: "$assignedTo",
+        total: { $sum: 1 },
+        won: { $sum: { $cond: [{ $eq: ["$status", "Won"] }, 1, 0] } },
+        lost: { $sum: { $cond: [{ $eq: ["$status", "Lost"] }, 1, 0] } },
+        openValue: {
+          $sum: {
+            $cond: [
+              { $in: ["$status", ["New", "Contacted", "Follow-up", "Proposal", "Negotiation"]] },
+              { $ifNull: ["$budget", 0] },
+              0
+            ]
+          }
+        },
+        wonValue: {
+          $sum: { $cond: [{ $eq: ["$status", "Won"] }, { $ifNull: ["$budget", 0] }, 0] }
+        },
+        overdueFollowUps: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $ne: ["$nextFollowUp", null] },
+                  { $lt: ["$nextFollowUp", new Date()] },
+                  { $not: [{ $in: ["$status", ["Won", "Lost"]] }] }
+                ]
+              },
+              1,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user"
+      }
+    },
+    { $unwind: "$user" },
+    { $match: { "user.isArchived": { $ne: true } } },
+    { $sort: { wonValue: -1, won: -1 } }
+  ]);
+
+  const data = rows.map((r) => ({
+    id: r._id.toString(),
+    name: r.user.name,
+    email: r.user.email,
+    role: r.user.role,
+    designation: r.user.designation || "",
+    total: r.total,
+    won: r.won,
+    lost: r.lost,
+    open: r.total - r.won - r.lost,
+    openValue: r.openValue,
+    wonValue: r.wonValue,
+    overdueFollowUps: r.overdueFollowUps,
+    conversionRate: r.total > 0 ? Math.round((r.won / r.total) * 100) : 0,
+  }));
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, data, "Team performance fetched successfully"));
+});
+
 export const getRevenueOverview = asyncHandler(async (req, res) => {
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const now = new Date();
 
-  // Baseline mock data for continuous realistic trends
-  const baseline = [
-    { paid: 48000, pending: 16000 },
-    { paid: 56000, pending: 19000 },
-    { paid: 64000, pending: 22000 },
-    { paid: 78000, pending: 25000 },
-    { paid: 92000, pending: 28000 },
-    { paid: 115000, pending: 34000 }
-  ];
-
-  // Create sliding 6-month window ending with current month
+  // Sliding 6-month window ending with the current month, seeded at zero.
+  // Every figure below comes from the database — no baselines, no demo data.
   const monthsMap = new Map();
   const monthsList = [];
 
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-    const base = baseline[5 - i] || { paid: 50000, pending: 20000 };
     const item = {
       year: d.getFullYear(),
       monthNum: d.getMonth() + 1,
       month: monthNames[d.getMonth()],
       name: monthNames[d.getMonth()],
-      paid: base.paid,
-      pending: base.pending,
-      revenue: base.paid,
-      expenses: base.pending
+      paid: 0,
+      pending: 0,
     };
     monthsMap.set(key, item);
     monthsList.push(item);
@@ -195,50 +281,45 @@ export const getRevenueOverview = asyncHandler(async (req, res) => {
       const entry = monthsMap.get(key);
       if (p._id.status === "Paid") {
         entry.paid += p.total;
-        entry.revenue += p.total;
       } else {
         entry.pending += p.total;
-        entry.expenses += p.total;
       }
     }
   });
 
-  // 2. Also aggregate won deals and add on top
-  const wonLeadsAgg = await Lead.aggregate([
+  // 2. Real expenses per month, so the chart compares like with like.
+  const expenseAgg = await Expense.aggregate([
+    { $match: { createdAt: { $gte: sixMonthsAgo } } },
     {
-      $match: {
-        status: "Won",
-        updatedAt: { $gte: sixMonthsAgo }
+      $project: {
+        amount: 1,
+        date: { $ifNull: ["$date", "$createdAt"] }
       }
     },
     {
       $group: {
-        _id: {
-          year: { $year: "$updatedAt" },
-          month: { $month: "$updatedAt" }
-        },
-        total: { $sum: "$budget" }
+        _id: { year: { $year: "$date" }, month: { $month: "$date" } },
+        total: { $sum: "$amount" }
       }
     }
   ]);
 
-  wonLeadsAgg.forEach(w => {
-    const key = `${w._id.year}-${w._id.month}`;
-    if (monthsMap.has(key)) {
-      const entry = monthsMap.get(key);
-      entry.paid += w.total;
-      entry.revenue += w.total;
-    }
+  const expenseByMonth = new Map();
+  expenseAgg.forEach(e => {
+    expenseByMonth.set(`${e._id.year}-${e._id.month}`, e.total);
   });
 
-  const finalOverview = monthsList.map(m => ({
-    month: m.month,
-    name: m.month,
-    paid: m.paid,
-    revenue: m.paid,
-    pending: m.pending,
-    expenses: m.pending
-  }));
+  const finalOverview = monthsList.map(m => {
+    const key = `${m.year}-${m.monthNum}`;
+    return {
+      month: m.month,
+      name: m.month,
+      paid: m.paid,
+      revenue: m.paid,
+      pending: m.pending,
+      expenses: expenseByMonth.get(key) || 0
+    };
+  });
 
   return res.status(200).json(new ApiResponse(200, finalOverview, "Revenue overview fetched successfully"));
 });
@@ -270,8 +351,10 @@ export const getPipelineSummary = asyncHandler(async (req, res) => {
     map[p._id] = p.count;
   });
 
-  const stages = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
-  const hasData = pipelineAgg.length > 0;
+  const settings = await getSettings();
+  const stages = settings.options?.pipelineStages?.length
+    ? settings.options.pipelineStages
+    : ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
 
   const result = stages.map(st => ({
     stage: st,
@@ -279,14 +362,6 @@ export const getPipelineSummary = asyncHandler(async (req, res) => {
     count: map[st] || 0,
     value: map[st] || 0
   }));
-
-  if (!hasData) {
-    const demo = { "New": 8, "Contacted": 5, "Follow-up": 6, "Proposal": 4, "Negotiation": 2, "Won": 5, "Lost": 1 };
-    result.forEach(r => {
-      r.count = demo[r.stage] || 0;
-      r.value = r.count;
-    });
-  }
 
   return res.status(200).json(new ApiResponse(200, result, "Pipeline summary fetched"));
 });
@@ -314,20 +389,10 @@ export const getLeadSourcesSummary = asyncHandler(async (req, res) => {
     { $sort: { count: -1 } }
   ]);
 
-  let result = sourcesAgg.map(s => ({
+  const result = sourcesAgg.map(s => ({
     name: s._id || "Other",
     value: s.count
   }));
-
-  if (result.length === 0) {
-    result = [
-      { name: "Website", value: 12 },
-      { name: "Referral", value: 9 },
-      { name: "LinkedIn", value: 7 },
-      { name: "Cold Call", value: 4 },
-      { name: "Social Media", value: 3 },
-    ];
-  }
 
   return res.status(200).json(new ApiResponse(200, result, "Lead sources fetched"));
 });

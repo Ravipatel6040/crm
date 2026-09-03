@@ -61,16 +61,60 @@ export const apiSlice = createApi({
       query: ({ id, ...body }) => ({ url: `/admin/users/${id}`, method: "PATCH", data: body }),
       invalidatesTags: (r, e, { id }) => [{ type: "User", id }, { type: "User", id: "LIST" }],
     }),
+    // Archives the account and moves its leads/clients/projects to `reassignTo`.
     deleteUser: builder.mutation({
-      query: (id) => ({ url: `/admin/users/${id}`, method: "DELETE" }),
-      invalidatesTags: [{ type: "User", id: "LIST" }],
+      query: ({ id, reassignTo = null }) => ({
+        url: `/admin/users/${id}`,
+        method: "DELETE",
+        data: { reassignTo },
+      }),
+      invalidatesTags: [
+        { type: "User", id: "LIST" },
+        { type: "Lead", id: "LIST" },
+        { type: "Client", id: "LIST" },
+        { type: "Project", id: "LIST" },
+        { type: "ActivityLog", id: "AUDIT" },
+        "Dashboard",
+      ],
+    }),
+    // What a user still owns — asked before archiving them.
+    getUserWorkload: builder.query({
+      query: (id) => ({ url: `/admin/users/${id}/workload`, method: "GET" }),
+      providesTags: (r, e, id) => [{ type: "User", id: `WORKLOAD-${id}` }],
+    }),
+    forceLogoutUser: builder.mutation({
+      query: (id) => ({ url: `/admin/users/${id}/force-logout`, method: "POST" }),
+      invalidatesTags: [{ type: "User", id: "LIST" }, { type: "ActivityLog", id: "AUDIT" }],
     }),
     changeUserPassword: builder.mutation({
       query: ({ id, ...body }) => ({ url: `/users/${id}/password`, method: "PATCH", data: body }),
+      invalidatesTags: [{ type: "ActivityLog", id: "AUDIT" }],
     }),
     getUserActivity: builder.query({
       query: (id) => ({ url: `/users/${id}/activity`, method: "GET" }),
       providesTags: (r, e, id) => [{ type: "ActivityLog", id }],
+    }),
+
+    // ------------------------------------------------- 2b. Audit trail & settings
+    getAuditLogs: builder.query({
+      query: (params) => ({ url: "/admin/audit-logs", method: "GET", params }),
+      providesTags: [{ type: "ActivityLog", id: "AUDIT" }],
+    }),
+    getAppSettings: builder.query({
+      query: () => ({ url: "/settings", method: "GET" }),
+      providesTags: [{ type: "Settings", id: "GLOBAL" }],
+    }),
+    updateAppSettings: builder.mutation({
+      query: (body) => ({ url: "/settings", method: "PATCH", data: body }),
+      invalidatesTags: [{ type: "Settings", id: "GLOBAL" }, { type: "ActivityLog", id: "AUDIT" }],
+    }),
+    resetAppSettings: builder.mutation({
+      query: () => ({ url: "/settings/reset", method: "POST" }),
+      invalidatesTags: [{ type: "Settings", id: "GLOBAL" }, { type: "ActivityLog", id: "AUDIT" }],
+    }),
+    getTeamPerformance: builder.query({
+      query: () => ({ url: "/dashboard/team-performance", method: "GET" }),
+      providesTags: ["Dashboard"],
     }),
 
     // ---------------------------------------------------------------- 3. Leads
@@ -488,6 +532,8 @@ export const apiSlice = createApi({
 export const {
   useLoginMutation, useLogoutMutation, useForgotPasswordMutation, useResetPasswordMutation, useFetchMeQuery, useLazyFetchMeQuery,
   useGetUsersQuery, useGetUserQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation, useChangeUserPasswordMutation, useGetUserActivityQuery,
+  useGetUserWorkloadQuery, useForceLogoutUserMutation,
+  useGetAuditLogsQuery, useGetAppSettingsQuery, useUpdateAppSettingsMutation, useResetAppSettingsMutation, useGetTeamPerformanceQuery,
   useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useConvertLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation,
   useGetDealsQuery, useUpdateDealStageMutation, useGetPipelineStagesQuery,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,

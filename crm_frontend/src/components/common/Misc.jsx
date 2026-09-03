@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { classNames, initials } from "../../utils/format";
 
-export function Avatar({ name, size = "md", color }) {
+export function Avatar({ name, size = "md", color, className = "" }) {
   const sizes = { sm: "h-6 w-6 text-[10px]", md: "h-9 w-9 text-xs", lg: "h-12 w-12 text-sm" };
   return (
     <div
       className={classNames(
         "flex items-center justify-center rounded-full font-semibold shrink-0",
-        color || "bg-primary-100 text-primary-700",
-        sizes[size]
+        color || "bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300",
+        sizes[size],
+        className
       )}
     >
       {initials(name)}
@@ -24,7 +25,7 @@ export function ProgressBar({ value, className = "", tone = "primary" }) {
     red: "bg-red-500",
   };
   return (
-    <div className={classNames("h-2 w-full rounded-full bg-slate-100 overflow-hidden", className)}>
+    <div className={classNames("h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700/60 overflow-hidden", className)}>
       <div
         className={classNames("h-full rounded-full transition-all duration-500", tones[tone])}
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
@@ -35,14 +36,16 @@ export function ProgressBar({ value, className = "", tone = "primary" }) {
 
 export function Tabs({ tabs, active, onChange }) {
   return (
-    <div className="flex items-center gap-1 border-b border-slate-100 overflow-x-auto no-scrollbar">
+    <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-700/60 overflow-x-auto no-scrollbar">
       {tabs.map((t) => (
         <button
           key={t}
           onClick={() => onChange(t)}
           className={classNames(
             "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition focus-ring",
-            active === t ? "border-primary-500 text-primary-700" : "border-transparent text-slate-500 hover:text-slate-700"
+            active === t
+              ? "border-primary-500 text-primary-700 dark:border-primary-400 dark:text-primary-300"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           )}
         >
           {t}

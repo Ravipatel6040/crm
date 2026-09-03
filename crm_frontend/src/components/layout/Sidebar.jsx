@@ -37,7 +37,6 @@ function NavItem({ item, collapsed, onNavigate }) {
 
 function SidebarContent({ collapsed, onNavigate }) {
   const { user } = useAuth();
-  const role = user?.role;
 
   return (
     <div className="flex h-full flex-col">
@@ -55,7 +54,7 @@ function SidebarContent({ collapsed, onNavigate }) {
 
       <div className="flex-1 overflow-y-auto px-3 py-4 no-scrollbar">
         {NAV_SECTIONS.map((section) => {
-          const items = section.items.filter((i) => canAccess(role, i.key));
+          const items = section.items.filter((i) => canAccess(user, i.key));
           if (items.length === 0) return null;
           return (
             <div key={section.title} className="mb-5">

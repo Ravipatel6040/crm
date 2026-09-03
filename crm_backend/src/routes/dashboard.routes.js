@@ -8,7 +8,8 @@ import {
   getSalesDashboardSummary,
   getMarketingDashboardSummary,
   getProjectDashboardSummary,
-  getFinanceDashboardSummary
+  getFinanceDashboardSummary,
+  getTeamPerformance
 } from "../controllers/dashboard.controller.js";
 
 export const dashboardRoutes = Router();
@@ -17,6 +18,7 @@ dashboardRoutes.use(authenticate); // Require authentication for all dashboard r
 
 // Secure specific endpoints strictly by role
 dashboardRoutes.get("/summary", authorizeRoles("ADMIN"), getDashboardSummary);
+dashboardRoutes.get("/team-performance", authorizeRoles("ADMIN"), getTeamPerformance);
 dashboardRoutes.get("/sales-summary", authorizeRoles("ADMIN", "BD_SALES"), getSalesDashboardSummary);
 dashboardRoutes.get("/marketing-summary", authorizeRoles("ADMIN", "MARKETING"), getMarketingDashboardSummary);
 dashboardRoutes.get("/project-summary", authorizeRoles("ADMIN", "PROJECT_MANAGER"), getProjectDashboardSummary);

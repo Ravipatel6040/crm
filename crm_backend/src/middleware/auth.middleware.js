@@ -43,6 +43,10 @@ export const authenticate = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, "User no longer exists");
   }
 
+  if (user.isArchived) {
+    throw new ApiError(403, "User account has been removed");
+  }
+
   if (user.status !== "ACTIVE") {
     throw new ApiError(403, "User account is not active");
   }
@@ -67,13 +71,6 @@ export const authorizeRoles = (...roles) => {
     const allowedRoles = roles.map((role) =>
       String(role).trim().toUpperCase()
     );
-
-    console.log("========== ROLE CHECK ==========");
-    console.log("User:", req.user.email);
-    console.log("Database Role:", req.user.role);
-    console.log("Normalized Role:", userRole);
-    console.log("Allowed Roles:", allowedRoles);
-    console.log("================================");
 
     if (!allowedRoles.includes(userRole)) {
       throw new ApiError(
