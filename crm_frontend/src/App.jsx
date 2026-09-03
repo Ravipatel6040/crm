@@ -21,7 +21,6 @@ import Payments from "./pages/payments/Payments";
 import Expenses from "./pages/finance/Expenses";
 import Campaigns from "./pages/marketing/Campaigns";
 import LeadSources from "./pages/marketing/LeadSources";
-import MarketingAnalytics from "./pages/marketing/MarketingAnalytics";
 import Communication from "./pages/communication/Communication";
 import FollowUps from "./pages/followups/FollowUps";
 import Documents from "./pages/documents/Documents";
@@ -88,7 +87,6 @@ export default function App() {
               <Route path="/marketing/dashboard" element={<Navigate to="/marketing" replace />} />
               <Route path="/marketing/campaigns" element={<Protected routeKey="campaigns"><Campaigns /></Protected>} />
               <Route path="/marketing/lead-sources" element={<Protected routeKey="lead_sources"><LeadSources /></Protected>} />
-              <Route path="/marketing/analytics" element={<Protected routeKey="analytics"><MarketingAnalytics /></Protected>} />
 
               <Route path="/finance" element={<Protected routeKey="finance"><FinanceDashboard /></Protected>} />
               <Route path="/finance/dashboard" element={<Navigate to="/finance" replace />} />

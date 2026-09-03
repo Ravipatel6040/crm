@@ -30,7 +30,6 @@ export const NAV_SECTIONS = [
     items: [
       { key: "campaigns", label: "Campaigns", to: "/marketing/campaigns", icon: Megaphone },
       { key: "lead_sources", label: "Lead Sources", to: "/marketing/lead-sources", icon: Radio },
-      { key: "analytics", label: "Analytics", to: "/marketing/analytics", icon: LineChart },
     ],
   },
   {

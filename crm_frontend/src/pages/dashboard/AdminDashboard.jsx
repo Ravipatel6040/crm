@@ -182,7 +182,7 @@ export default function AdminDashboard({ user }) {
                   </div>
                   <span className="text-xs text-slate-400">Admin Control</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                   <button onClick={() => navigate("/leads")} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-all text-left flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
                     <UserPlus size={16} className="text-primary-500" />
                     <span className="font-semibold text-slate-700 dark:text-slate-200">Add New Lead</span>
@@ -192,11 +192,6 @@ export default function AdminDashboard({ user }) {
                     <Clock size={16} className="text-amber-500" />
                     <span className="font-semibold text-slate-700 dark:text-slate-200">Follow-up Queue</span>
                     <span className="text-[11px] text-slate-400">Calls & meeting tasks</span>
-                  </button>
-                  <button onClick={() => navigate("/communication")} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-all text-left flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
-                    <Handshake size={16} className="text-emerald-500" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">Client Comms</span>
-                    <span className="text-[11px] text-slate-400">Call logs & emails</span>
                   </button>
                   <button onClick={() => navigate("/reports")} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-all text-left flex flex-col gap-1 border border-slate-100 dark:border-slate-800">
                     <BarChart3 size={16} className="text-primary-500" />

@@ -1,12 +1,20 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import PageHeader from "../../components/layout/PageHeader";
 import { Card, CardHeader, Badge, ProgressBar } from "../../components/common";
-import { leads, leadSources } from "../../services/mockData";
+import { useGetLeadsQuery } from "../../store/api/apiSlice";
+import { LoadingState } from "../../components/common";
 
 const PALETTE = ["#3a56b0", "#6480cf", "#8fa2dc", "#293e85", "#b7c3e9", "#192551", "#21326b"];
+const ALL_SOURCES = ["Website", "Referral", "LinkedIn", "Facebook", "Instagram", "Google", "Cold Call", "Email", "Other"];
 
 export default function LeadSourcesPage() {
-  const data = leadSources.map((s, i) => {
+  const { data: leadsData, isLoading } = useGetLeadsQuery();
+  
+  if (isLoading) return <LoadingState text="Loading Lead Sources..." />;
+
+  const leads = Array.isArray(leadsData?.data) ? leadsData.data : Array.isArray(leadsData) ? leadsData : [];
+
+  const data = ALL_SOURCES.map((s, i) => {
     const sourceLeads = leads.filter((l) => l.source === s);
     const won = sourceLeads.filter((l) => l.status === "Won").length;
     return {
@@ -16,10 +24,10 @@ export default function LeadSourcesPage() {
       conversion: sourceLeads.length ? ((won / sourceLeads.length) * 100).toFixed(0) : 0,
       color: PALETTE[i % PALETTE.length],
     };
-  });
+  }).filter((d) => d.total > 0 || d.name === "Website" || d.name === "Referral"); // keep some even if 0 for structure
 
   return (
-    <div>
+    <div className="pb-10">
       <PageHeader title="Lead Sources" subtitle="Which channels are driving the most qualified leads" />
 
       <Card className="mb-6">
@@ -49,22 +57,6 @@ export default function LeadSourcesPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.map((d) => (
-          <Card key={d.name} padding="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color }} />
-                <p className="text-sm font-semibold text-slate-700">{d.name}</p>
-              </div>
-              <Badge tone="green">{d.conversion}% won</Badge>
-            </div>
-            <p className="text-2xl font-bold text-slate-800 mb-2">{d.total}</p>
-            <ProgressBar value={Number(d.conversion)} tone="green" />
-            <p className="text-xs text-slate-400 mt-2">{d.won} won out of {d.total} leads</p>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

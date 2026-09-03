@@ -15,8 +15,8 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "16kb" }));
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static("public"));
 app.use(cookieParser()); // Required to parse httpOnly cookies
 
@@ -27,6 +27,7 @@ import { adminRoutes } from "./routes/admin.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { leadRoutes } from "./routes/lead.routes.js";
+import { clientRoutes } from "./routes/client.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { marketingRoutes } from "./routes/marketing.routes.js";
 import { notificationRoutes } from "./routes/notification.routes.js";
@@ -43,6 +44,7 @@ app.use("/api/v1/admin", adminRoutes);
 // General user routes → /api/v1/users
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/leads", leadRoutes);
+app.use("/api/v1/clients", clientRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/marketing", marketingRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
