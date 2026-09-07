@@ -19,10 +19,47 @@ const formatCampaign = (c) => ({
   revenue: c.revenue || 0,
   startDate: c.startDate,
   endDate: c.endDate,
+  utm: {
+    source:     c.utm?.source     || "",
+    medium:     c.utm?.medium     || "",
+    campaign:   c.utm?.campaign   || "",
+    landingUrl: c.utm?.landingUrl || "",
+  },
   owner: c.owner,
+  imageUrl: c.imageUrl || "",
+  videoUrl: c.videoUrl || "",
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });
+
+const validateCampaignData = (data) => {
+  const l = data.leads !== undefined ? Number(data.leads) : undefined;
+  const q = data.qualified !== undefined ? Number(data.qualified) : undefined;
+  const p = data.proposals !== undefined ? Number(data.proposals) : undefined;
+  const w = data.won !== undefined ? Number(data.won) : undefined;
+
+  if (q !== undefined && l !== undefined && q > l) throw new ApiError(400, "Qualified leads cannot exceed total leads");
+  if (p !== undefined && q !== undefined && p > q) throw new ApiError(400, "Proposals cannot exceed qualified leads");
+  if (w !== undefined && p !== undefined && w > p) throw new ApiError(400, "Won deals cannot exceed proposals");
+
+  if (
+    (data.budget !== undefined && Number(data.budget) < 0) ||
+    (data.spend !== undefined && Number(data.spend) < 0) ||
+    (l !== undefined && l < 0) ||
+    (q !== undefined && q < 0) ||
+    (p !== undefined && p < 0) ||
+    (w !== undefined && w < 0) ||
+    (data.revenue !== undefined && Number(data.revenue) < 0)
+  ) {
+    throw new ApiError(400, "Metrics cannot be negative");
+  }
+
+  if (data.startDate && data.endDate) {
+    if (new Date(data.endDate) < new Date(data.startDate)) {
+      throw new ApiError(400, "End date cannot be before start date");
+    }
+  }
+};
 
 // ─── GET /api/v1/marketing/campaigns ──────────────────────────────────────────
 export const getCampaigns = asyncHandler(async (req, res) => {
@@ -46,12 +83,17 @@ export const createCampaign = asyncHandler(async (req, res) => {
     revenue,
     startDate,
     endDate,
-    status
+    status,
+    utm,
+    imageUrl,
+    videoUrl,
   } = req.body;
 
   if (!name || !name.trim()) {
     throw new ApiError(400, "Campaign name is required");
   }
+
+  validateCampaignData(req.body);
 
   const campaign = await Campaign.create({
     name: name.trim(),
@@ -66,6 +108,14 @@ export const createCampaign = asyncHandler(async (req, res) => {
     startDate: startDate ? new Date(startDate) : new Date(),
     endDate: endDate ? new Date(endDate) : null,
     status: status || "Active",
+    utm: {
+      source:     utm?.source     || "",
+      medium:     utm?.medium     || "",
+      campaign:   utm?.campaign   || "",
+      landingUrl: utm?.landingUrl || "",
+    },
+    imageUrl: imageUrl || "",
+    videoUrl: videoUrl || "",
     owner: req.user?._id || null,
   });
 
@@ -92,6 +142,18 @@ export const updateCampaign = asyncHandler(async (req, res) => {
   if (updateData.revenue !== undefined) updateData.revenue = Number(updateData.revenue) || 0;
   if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
   if (updateData.endDate) updateData.endDate = new Date(updateData.endDate);
+  if (updateData.imageUrl !== undefined) updateData.imageUrl = updateData.imageUrl;
+  if (updateData.videoUrl !== undefined) updateData.videoUrl = updateData.videoUrl;
+  // Keep utm as a nested object — Mongoose handles partial sub-doc updates
+  if (updateData.utm && typeof updateData.utm === "object") {
+    updateData["utm.source"]     = updateData.utm.source     ?? "";
+    updateData["utm.medium"]     = updateData.utm.medium     ?? "";
+    updateData["utm.campaign"]   = updateData.utm.campaign   ?? "";
+    updateData["utm.landingUrl"] = updateData.utm.landingUrl ?? "";
+    delete updateData.utm;
+  }
+
+  validateCampaignData(req.body);
 
   const campaign = await Campaign.findByIdAndUpdate(id, updateData, {
     new: true,

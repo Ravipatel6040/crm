@@ -9,7 +9,6 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 
 import Dashboard from "./pages/dashboard/Dashboard";
-import MarketingDashboard from "./pages/dashboard/MarketingDashboard";
 import FinanceDashboard from "./pages/dashboard/FinanceDashboard";
 import Leads from "./pages/leads/Leads";
 import Clients from "./pages/clients/Clients";
@@ -81,14 +80,14 @@ export default function App() {
               <Route path="/follow-ups" element={<Protected routeKey="follow_ups"><FollowUps /></Protected>} />
               <Route path="/clients" element={<Protected routeKey="clients"><Clients /></Protected>} />
               <Route path="/clients/:id" element={<Protected routeKey="clients"><ClientDetail /></Protected>} />
-              
+
               <Route path="/projects" element={<Protected routeKey="projects"><Projects /></Protected>} />
               <Route path="/projects/:id" element={<Protected routeKey="projects"><ProjectDetail /></Protected>} />
               <Route path="/requirements" element={<Navigate to="/projects" replace />} />
               <Route path="/tasks" element={<Protected routeKey="tasks"><Placeholder title="Tasks" /></Protected>} />
 
-              <Route path="/marketing" element={<Protected routeKey="marketing"><MarketingDashboard /></Protected>} />
-              <Route path="/marketing/dashboard" element={<Navigate to="/marketing" replace />} />
+              <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
+              <Route path="/marketing/dashboard" element={<Navigate to="/marketing/campaigns" replace />} />
               <Route path="/marketing/campaigns" element={<Protected routeKey="campaigns"><Campaigns /></Protected>} />
               <Route path="/marketing/lead-sources" element={<Protected routeKey="lead_sources"><LeadSources /></Protected>} />
 
@@ -101,10 +100,10 @@ export default function App() {
               <Route path="/reports" element={<Protected routeKey="reports"><Reports /></Protected>} />
               <Route path="/communication" element={<Protected routeKey="calls"><Communication /></Protected>} />
               <Route path="/documents" element={<Navigate to="/dashboard" replace />} />
-              
+
               <Route path="/activity" element={<Protected routeKey="audit"><ActivityLogs /></Protected>} />
               <Route path="/accounts" element={<Protected routeKey="team"><Accounts /></Protected>} />
-              
+
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Protected routeKey="settings"><Settings /></Protected>} />
               <Route path="/profile" element={<Protected routeKey="settings"><Profile /></Protected>} />

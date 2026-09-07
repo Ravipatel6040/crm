@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, Megaphone, TrendingUp, Target, IndianRupee } from
 import PageHeader from "../../components/layout/PageHeader";
 import {
   Card, Table, Tr, Td, Badge, SearchBar, Button, ConfirmDialog,
-  EmptyState, ProgressBar, useToast, LoadingState
+  EmptyState, ProgressBar, useToast, LoadingState, Pagination
 } from "../../components/common";
 import CampaignFormModal from "../../components/campaigns/CampaignFormModal";
 import KpiCard from "../../components/dashboard/KpiCard";
@@ -29,6 +29,7 @@ export default function Campaigns() {
   const campaigns = Array.isArray(campaignsData?.data) ? campaignsData.data : Array.isArray(campaignsData) ? campaignsData : [];
 
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -44,6 +45,17 @@ export default function Campaigns() {
     () => campaigns.filter((c) => !search || (c.name && c.name.toLowerCase().includes(search.toLowerCase()))),
     [campaigns, search]
   );
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const pageSize = 10;
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page]);
 
   const totals = useMemo(() => ({
     budget: campaigns.reduce((s, c) => s + (c.budget || 0), 0),
@@ -99,8 +111,9 @@ export default function Campaigns() {
         ) : filtered.length === 0 ? (
           <EmptyState title="No campaigns found" />
         ) : (
-          <Table columns={["Campaign", "Platform", "Duration", "Budget", "Spend", "Leads", "Qualified", "Won", "Revenue", "ROI", "Actions"]}>
-            {filtered.map((c) => {
+          <>
+            <Table columns={["Campaign", "Platform", "Duration", "Budget", "Spend", "Leads", "Qualified", "Won", "Revenue", "ROI", "Actions"]}>
+            {paginated.map((c) => {
               const roi = c.spend > 0 ? (((c.revenue - c.spend) / c.spend) * 100).toFixed(0) : 0;
               return (
                 <Tr key={c.id || c._id}>
@@ -142,6 +155,15 @@ export default function Campaigns() {
               );
             })}
           </Table>
+          
+          <Pagination 
+            page={page} 
+            totalPages={Math.ceil(filtered.length / pageSize)} 
+            onChange={setPage} 
+            totalItems={filtered.length} 
+            pageSize={pageSize} 
+          />
+        </>
         )}
       </Card>
 

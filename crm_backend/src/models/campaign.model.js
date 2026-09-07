@@ -1,5 +1,15 @@
 import mongoose from "mongoose";
 
+const utmSchema = new mongoose.Schema(
+  {
+    source:     { type: String, trim: true, default: "" }, // e.g. google, facebook
+    medium:     { type: String, trim: true, default: "" }, // e.g. cpc, cpm, cpv, email, social
+    campaign:   { type: String, trim: true, default: "" }, // e.g. summer-sale
+    landingUrl: { type: String, trim: true, default: "" }, // base landing page URL
+  },
+  { _id: false }
+);
+
 const campaignSchema = new mongoose.Schema(
   {
     name: {
@@ -60,10 +70,22 @@ const campaignSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    utm: {
+      type: utmSchema,
+      default: () => ({}),
+    },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+    },
+    imageUrl: {
+      type: String,
+      default: "",
+    },
+    videoUrl: {
+      type: String,
+      default: "",
     },
   },
   {
@@ -72,3 +94,4 @@ const campaignSchema = new mongoose.Schema(
 );
 
 export const Campaign = mongoose.model("Campaign", campaignSchema);
+
