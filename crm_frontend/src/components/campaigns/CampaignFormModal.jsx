@@ -32,6 +32,8 @@ const empty = {
   revenue: "0",
   status: "Active",
   utm: { ...emptyUtm },
+  imageUrl: "",
+  videoUrl: "",
 };
 
 // ─── UTM URL builder ─────────────────────────────────────────────────────────
@@ -139,17 +141,6 @@ export default function CampaignFormModal({ open, onClose, onSave, initial }) {
     
     if (Number(form.budget) < 0) errs.budget = "Cannot be negative";
     if (Number(form.spend) < 0) errs.spend = "Cannot be negative";
-    if (Number(form.revenue) < 0) errs.revenue = "Cannot be negative";
-
-    const l = Number(form.leads) || 0;
-    const q = Number(form.qualified) || 0;
-    const p = Number(form.proposals) || 0;
-    const w = Number(form.won) || 0;
-
-    if (l < 0) errs.leads = "Cannot be negative";
-    if (q < 0 || q > l) errs.qualified = "Must be ≤ Leads";
-    if (p < 0 || p > q) errs.proposals = "Must be ≤ Qualified";
-    if (w < 0 || w > p) errs.won = "Must be ≤ Proposals";
 
     if (form.startDate && form.endDate) {
       if (new Date(form.endDate) < new Date(form.startDate)) {
@@ -176,6 +167,8 @@ export default function CampaignFormModal({ open, onClose, onSave, initial }) {
       revenue:   Number(form.revenue)   || 0,
       status:    form.status            || "Active",
       utm:       form.utm,
+      imageUrl:  form.imageUrl          || "",
+      videoUrl:  form.videoUrl          || "",
     });
   };
 
@@ -267,34 +260,43 @@ export default function CampaignFormModal({ open, onClose, onSave, initial }) {
             />
           </Field>
 
-          <div className="sm:col-span-2 border-t border-slate-100 dark:border-slate-700 pt-4">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Performance Metrics</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { k: "leads",     label: "Leads" },
-                { k: "qualified", label: "Qualified" },
-                { k: "proposals", label: "Proposals" },
-                { k: "won",       label: "Won" },
-              ].map(({ k, label }) => (
-                <Field key={k} label={label} error={errors[k]}>
-                  <Input
-                    type="number"
-                    value={form[k]}
-                    onChange={(e) => set(k, e.target.value)}
-                    placeholder="0"
-                  />
-                </Field>
-              ))}
-              <Field label="Revenue (₹)" error={errors.revenue} className="sm:col-span-2">
-                <Input
-                  type="number"
-                  value={form.revenue}
-                  onChange={(e) => set("revenue", e.target.value)}
-                  placeholder="Revenue generated"
-                />
-              </Field>
-            </div>
-          </div>
+          <Field label="Campaign Image">
+            <Input
+              type="file"
+              accept="image/*"
+              className="file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/30 dark:file:text-primary-400 cursor-pointer"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  set("imageUrl", URL.createObjectURL(e.target.files[0]));
+                }
+              }}
+            />
+            {form.imageUrl && (
+              <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-center">
+                <img src={form.imageUrl} alt="Campaign preview" className="max-h-40 object-contain" />
+              </div>
+            )}
+          </Field>
+
+          <Field label="Campaign Video">
+            <Input
+              type="file"
+              accept="video/*"
+              className="file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/30 dark:file:text-primary-400 cursor-pointer"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  set("videoUrl", URL.createObjectURL(e.target.files[0]));
+                }
+              }}
+            />
+            {form.videoUrl && (
+              <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-center">
+                <video src={form.videoUrl} controls className="max-h-40 object-contain" />
+              </div>
+            )}
+          </Field>
+
+
         </div>
       )}
 
