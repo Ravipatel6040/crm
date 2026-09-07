@@ -26,6 +26,8 @@ const formatCampaign = (c) => ({
     landingUrl: c.utm?.landingUrl || "",
   },
   owner: c.owner,
+  imageUrl: c.imageUrl || "",
+  videoUrl: c.videoUrl || "",
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });
@@ -83,6 +85,8 @@ export const createCampaign = asyncHandler(async (req, res) => {
     endDate,
     status,
     utm,
+    imageUrl,
+    videoUrl,
   } = req.body;
 
   if (!name || !name.trim()) {
@@ -110,6 +114,8 @@ export const createCampaign = asyncHandler(async (req, res) => {
       campaign:   utm?.campaign   || "",
       landingUrl: utm?.landingUrl || "",
     },
+    imageUrl: imageUrl || "",
+    videoUrl: videoUrl || "",
     owner: req.user?._id || null,
   });
 
@@ -136,6 +142,8 @@ export const updateCampaign = asyncHandler(async (req, res) => {
   if (updateData.revenue !== undefined) updateData.revenue = Number(updateData.revenue) || 0;
   if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
   if (updateData.endDate) updateData.endDate = new Date(updateData.endDate);
+  if (updateData.imageUrl !== undefined) updateData.imageUrl = updateData.imageUrl;
+  if (updateData.videoUrl !== undefined) updateData.videoUrl = updateData.videoUrl;
   // Keep utm as a nested object — Mongoose handles partial sub-doc updates
   if (updateData.utm && typeof updateData.utm === "object") {
     updateData["utm.source"]     = updateData.utm.source     ?? "";

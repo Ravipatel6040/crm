@@ -79,6 +79,14 @@ const campaignSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    imageUrl: {
+      type: String,
+      default: "",
+    },
+    videoUrl: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
