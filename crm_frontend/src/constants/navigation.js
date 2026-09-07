@@ -12,7 +12,6 @@ export const NAV_SECTIONS = [
       { key: "dashboard", label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
       { key: "leads", label: "Leads", to: "/leads", icon: Users },
       { key: "projects", label: "Projects", to: "/projects", icon: FolderKanban },
-      { key: "marketing", label: "Marketing", to: "/marketing", icon: Megaphone },
       { key: "finance", label: "Finance", to: "/finance", icon: CreditCard },
       { key: "reports", label: "Reports", to: "/reports", icon: BarChart3 },
     ],

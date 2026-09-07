@@ -22,7 +22,6 @@ export const payments = [];
 export const paymentStatuses = [];
 export const documentTypes = [];
 export const communications = [];
-export const campaigns = [];
 export const taskPriorities = [];
 export const kpis = {
   totalLeads: 0,

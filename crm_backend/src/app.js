@@ -36,7 +36,7 @@ import { settingsRoutes } from "./routes/settings.routes.js";
 import { invoiceRouter, paymentRouter, expenseRouter } from "./routes/finance.routes.js";
 
 // Home
-app.get("/", (req, res) => res.json({ msg: "CRM API is running 🚀" }));
+app.get("/", (req, res) => res.json({ msg: "CRM API is running" }));
 
 // Unified auth routes → /api/v1/auth/login | /refresh | /logout | /me
 app.use("/api/v1/auth", authRoutes);
