@@ -1,6 +1,7 @@
 export const currentUser = {};
 export const users = [];
 export const leads = [];
+export const campaigns = [];
 export const leadSources = ["Website", "Referral", "Social Media", "Cold Call", "Other"];
 export const pipelineStages = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
 export const revenueOverview = [
