@@ -11,9 +11,7 @@ import LeadViewModal from "../../components/leads/LeadViewModal";
 import LeadKanbanBoard from "../../components/leads/LeadKanbanBoard";
 import LeadConvertModal from "../../components/leads/LeadConvertModal";
 import LeadLostModal from "../../components/leads/LeadLostModal";
-import { leadSources, pipelineStages } from "../../services/mockData";
 import { formatCurrency, formatDate, classNames } from "../../utils/format";
-import usePagination from "../../hooks/usePagination";
 import { useAuth } from "../../context/AuthContext";
 import {
   useGetLeadsQuery,
@@ -21,8 +19,16 @@ import {
   useUpdateLeadMutation,
   useDeleteLeadMutation,
   useGetUsersQuery,
-  useConvertLeadMutation
+  useConvertLeadMutation,
+  useGetAppSettingsQuery,
 } from "../../store/api/apiSlice";
+
+// Used only until Settings finishes loading — must match Settings.model.js's
+// DEFAULT_OPTIONS on the backend so the picker never shows a value the
+// backend would reject in that brief window.
+const FALLBACK_LEAD_SOURCES = ["Website", "Referral", "LinkedIn", "Facebook", "Instagram", "Google", "Cold Call", "Email", "Other"];
+const FALLBACK_PIPELINE_STAGES = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
+const LIST_PAGE_SIZE = 6;
 
 export default function Leads() {
   const toast = useToast();
@@ -30,9 +36,12 @@ export default function Leads() {
   const isSales = user?.role === "BD_SALES";
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // RTK Query Hooks
+  // RTK Query Hooks. `leads` is the full, unpaged set — needed for the KPI
+  // cards, the "All Leads (n)" tab label and the Kanban board, all of which
+  // must see every matching lead, not just one page of them.
   const { data: leadsData, isLoading } = useGetLeadsQuery();
   const { data: usersData } = useGetUsersQuery();
+  const { data: settingsData } = useGetAppSettingsQuery();
   const [createLead] = useCreateLeadMutation();
   const [updateLead] = useUpdateLeadMutation();
   const [deleteLead] = useDeleteLeadMutation();
@@ -40,6 +49,9 @@ export default function Leads() {
 
   const leads = leadsData?.data ?? leadsData ?? [];
   const users = usersData?.data ?? usersData ?? [];
+  const settings = settingsData?.data ?? settingsData ?? {};
+  const leadSources = settings.options?.leadSources?.length ? settings.options.leadSources : FALLBACK_LEAD_SOURCES;
+  const pipelineStages = settings.options?.pipelineStages?.length ? settings.options.pipelineStages : FALLBACK_PIPELINE_STAGES;
 
   const userName = (id) => {
     return users.find((u) => u.id === id || u._id === id)?.name || "Unassigned";
@@ -138,7 +150,30 @@ export default function Leads() {
     });
   }, [leads, search, sourceFilter, statusFilter, isSales, salesTab, user]);
 
-  const { page, setPage, totalPages, pageItems, pageSize, totalItems } = usePagination(filtered, 6);
+  // The list-view table is server-paginated: getLeads accepts page/limit and
+  // the same search/source/status/assignedTo filters applied client-side
+  // above for the Kanban board. Skipped entirely while on the Kanban view so
+  // switching views doesn't fire a redundant request.
+  const [listPage, setListPage] = useState(1);
+  useEffect(() => {
+    setListPage(1);
+  }, [search, sourceFilter, statusFilter, salesTab, viewMode]);
+
+  const listParams = useMemo(() => ({
+    page: listPage,
+    limit: LIST_PAGE_SIZE,
+    search: search || undefined,
+    source: sourceFilter || undefined,
+    status: statusFilter || undefined,
+    assignedTo: isSales && salesTab === "assigned" ? (user?.id || user?._id) : undefined,
+  }), [listPage, search, sourceFilter, statusFilter, isSales, salesTab, user]);
+
+  const { data: pagedLeadsData, isLoading: isLoadingList } = useGetLeadsQuery(listParams, {
+    skip: viewMode !== "list",
+  });
+  const pagedLeads = pagedLeadsData?.data ?? [];
+  const listTotalPages = pagedLeadsData?.totalPages ?? 1;
+  const listTotalItems = pagedLeadsData?.total ?? 0;
 
   const handleSave = async (lead) => {
     try {
@@ -203,7 +238,7 @@ export default function Leads() {
         subtitle={
           isSales
             ? "Track, manage, and convert leads in your sales pipeline"
-            : `${totalItems} total leads in your funnel`
+            : `${leads.length} total leads in your funnel`
         }
         action={
           <Button icon={Plus} onClick={() => { setEditing(null); setModalOpen(true); }}>
@@ -307,15 +342,19 @@ export default function Leads() {
       <Card padding="p-0 sm:p-0 overflow-hidden">
         <div className="p-4 sm:p-5">
 
-        {isLoading ? (
+        {viewMode === "kanban" ? (
+          isLoading ? (
+            <LoadingState label="Loading leads..." />
+          ) : (
+            <LeadKanbanBoard leads={filtered} stages={pipelineStages} onStatusChange={handleStatusChange} setViewing={setViewing} />
+          )
+        ) : isLoadingList ? (
           <LoadingState label="Loading leads..." />
-        ) : viewMode === "kanban" ? (
-          <LeadKanbanBoard leads={filtered} onStatusChange={handleStatusChange} setViewing={setViewing} />
-        ) : pageItems.length === 0 ? (
+        ) : pagedLeads.length === 0 ? (
           <EmptyState title="No leads found" description="Try adjusting your search or filters, or add a new lead." />
         ) : (
           <Table columns={["Lead Info", "Source", "Interested In", "Budget", "Assigned To", "Status", "Next Follow-up", "Actions"]}>
-            {pageItems.map((l) => (
+            {pagedLeads.map((l) => (
               <Tr key={l.id || l._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group cursor-pointer" onClick={() => setViewing(l)}>
                 <Td>
                   <div className="flex items-center gap-3">
@@ -398,7 +437,7 @@ export default function Leads() {
         )}
 
         {viewMode === "list" && (
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={pageSize} />
+          <Pagination page={listPage} totalPages={listTotalPages} onChange={setListPage} totalItems={listTotalItems} pageSize={LIST_PAGE_SIZE} />
         )}
         </div>
       </Card>

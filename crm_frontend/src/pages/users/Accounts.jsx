@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, ShieldCheck, Mail, Phone, LogOut, Clock, AlertCircle } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
@@ -7,7 +7,6 @@ import {
 } from "../../components/common";
 import UserFormModal from "../../components/users/UserFormModal";
 import UserArchiveModal from "../../components/users/UserArchiveModal";
-import usePagination from "../../hooks/usePagination";
 import { ROLE_LABELS, ROLES } from "../../constants/roles";
 import { formatRelative, daysSince, classNames } from "../../utils/format";
 import { useAuth } from "../../context/AuthContext";
@@ -35,13 +34,18 @@ const ROLE_FILTER_OPTIONS = [ROLES.ADMIN, ROLES.SALES, ROLES.MARKETING, ROLES.PR
   (r) => ROLE_LABELS[r]
 );
 const STATUS_FILTER_OPTIONS = ["Active", "Inactive", "Suspended"];
+const STATUS_KEY_BY_LABEL = { Active: "ACTIVE", Inactive: "INACTIVE", Suspended: "SUSPENDED" };
+const LIST_PAGE_SIZE = 8;
 
 const COLUMNS = ["Name", "Contact", "Role", "Status", "Last active", "Actions"];
 
 export default function Accounts() {
   const toast = useToast();
   const { user: currentUser } = useAuth();
-  const { data, isLoading, isError, refetch } = useGetUsersQuery();
+  // Full, unpaged list — needed for the summary counts above the table and
+  // for the reassignment dropdown in UserArchiveModal, both of which must
+  // see every account regardless of the table's current page/filters.
+  const { data } = useGetUsersQuery();
   const { data: settingsData } = useGetAppSettingsQuery();
   const [createUser, { isLoading: creating }] = useCreateUserMutation();
   const [updateUser, { isLoading: updating }] = useUpdateUserMutation();
@@ -60,20 +64,32 @@ export default function Accounts() {
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [logoutTarget, setLogoutTarget] = useState(null);
 
-  const filtered = useMemo(() => {
-    return users.filter((u) => {
-      const matchesSearch =
-        !search ||
-        u.name?.toLowerCase().includes(search.toLowerCase()) ||
-        u.email?.toLowerCase().includes(search.toLowerCase());
-      const matchesRole = !roleFilterLabel || ROLE_LABELS[u.role] === roleFilterLabel;
-      const matchesStatus =
-        !statusFilterLabel || statusLabel[u.status] === statusFilterLabel;
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, search, roleFilterLabel, statusFilterLabel]);
+  const roleKeyByLabel = useMemo(
+    () => Object.fromEntries(Object.entries(ROLE_LABELS).map(([key, label]) => [label, key])),
+    []
+  );
 
-  const { page, setPage, totalPages, pageItems, totalItems, pageSize } = usePagination(filtered, 8);
+  // The table itself is server-paginated/filtered — getUsers accepts
+  // page/limit/search/role/status, so the search box and both dropdowns
+  // above map straight onto query params instead of filtering an
+  // already-fetched page client-side.
+  const [listPage, setListPage] = useState(1);
+  useEffect(() => {
+    setListPage(1);
+  }, [search, roleFilterLabel, statusFilterLabel]);
+
+  const listParams = useMemo(() => ({
+    page: listPage,
+    limit: LIST_PAGE_SIZE,
+    search: search || undefined,
+    role: roleFilterLabel ? roleKeyByLabel[roleFilterLabel] : undefined,
+    status: statusFilterLabel ? STATUS_KEY_BY_LABEL[statusFilterLabel] : undefined,
+  }), [listPage, search, roleFilterLabel, statusFilterLabel, roleKeyByLabel]);
+
+  const { data: pagedData, isLoading: isLoadingList, isError: isErrorList, refetch: refetchList } = useGetUsersQuery(listParams);
+  const pagedUsers = pagedData?.data ?? EMPTY;
+  const listTotalPages = pagedData?.totalPages ?? 1;
+  const listTotalItems = pagedData?.total ?? 0;
 
   const activeCount = users.filter((u) => u.status === "ACTIVE").length;
   const adminCount = users.filter((u) => u.role === ROLES.ADMIN && u.status === "ACTIVE").length;
@@ -123,7 +139,7 @@ export default function Accounts() {
     <div>
       <PageHeader
         title="Team Accounts"
-        subtitle={`${totalItems} account${totalItems === 1 ? "" : "s"} · ${activeCount} active · ${adminCount} admin${adminCount === 1 ? "" : "s"}`}
+        subtitle={`${users.length} account${users.length === 1 ? "" : "s"} · ${activeCount} active · ${adminCount} admin${adminCount === 1 ? "" : "s"}`}
         action={
           <Button icon={Plus} onClick={() => { setEditing(null); setModalOpen(true); }}>
             Create Account
@@ -148,11 +164,11 @@ export default function Accounts() {
           <FilterSelect value={statusFilterLabel} onChange={setStatusFilterLabel} options={STATUS_FILTER_OPTIONS} label="All Statuses" />
         </div>
 
-        {isLoading ? (
+        {isLoadingList ? (
           <LoadingState label="Loading team accounts..." />
-        ) : isError ? (
-          <ErrorState onRetry={refetch} description="Couldn't load team accounts from the server." />
-        ) : pageItems.length === 0 ? (
+        ) : isErrorList ? (
+          <ErrorState onRetry={refetchList} description="Couldn't load team accounts from the server." />
+        ) : pagedUsers.length === 0 ? (
           <EmptyState
             icon={ShieldCheck}
             title="No accounts found"
@@ -160,7 +176,7 @@ export default function Accounts() {
           />
         ) : (
           <Table columns={COLUMNS}>
-            {pageItems.map((u) => {
+            {pagedUsers.map((u) => {
               const isSelf = (u.id || u._id) === (currentUser?.id || currentUser?._id);
               const days = daysSince(u.lastLoginAt);
               const isStale = days === null || days > staleAfterDays;
@@ -241,7 +257,7 @@ export default function Accounts() {
           </Table>
         )}
 
-        <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={pageSize} />
+        <Pagination page={listPage} totalPages={listTotalPages} onChange={setListPage} totalItems={listTotalItems} pageSize={LIST_PAGE_SIZE} />
       </Card>
 
       <UserFormModal

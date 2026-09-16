@@ -1,21 +1,33 @@
 import { useEffect, useState } from "react";
 import { Modal, Button, Field, Input, Select, Textarea } from "../../components/common";
-import { leadSources, pipelineStages } from "../../services/mockData";
 import { ROLES } from "../../constants/roles";
+import { useGetAppSettingsQuery } from "../../store/api/apiSlice";
 
-const emptyLead = {
-  name: "", company: "", phone: "", email: "", source: leadSources[0],
-  interestedIn: "", budget: "", assignedTo: "", status: pipelineStages[0],
+// Used only until Settings finishes loading — must match Settings.model.js's
+// DEFAULT_OPTIONS on the backend.
+const FALLBACK_LEAD_SOURCES = ["Website", "Referral", "LinkedIn", "Facebook", "Instagram", "Google", "Cold Call", "Email", "Other"];
+const FALLBACK_PIPELINE_STAGES = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
+
+const buildEmptyLead = (sources, stages) => ({
+  name: "", company: "", phone: "", email: "", source: sources[0],
+  interestedIn: "", budget: "", assignedTo: "", status: stages[0],
   nextFollowUp: "", notes: "", city: "", state: "", country: "",
-};
+});
 
 export default function LeadFormModal({ open, onClose, onSave, initial, users = [] }) {
+  const { data: settingsData } = useGetAppSettingsQuery();
+  const settings = settingsData?.data ?? settingsData ?? {};
+  const leadSources = settings.options?.leadSources?.length ? settings.options.leadSources : FALLBACK_LEAD_SOURCES;
+  const pipelineStages = settings.options?.pipelineStages?.length ? settings.options.pipelineStages : FALLBACK_PIPELINE_STAGES;
+  const emptyLead = buildEmptyLead(leadSources, pipelineStages);
+
   const [form, setForm] = useState(emptyLead);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     setForm(initial ? { ...emptyLead, ...initial } : emptyLead);
     setErrors({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial, open]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));

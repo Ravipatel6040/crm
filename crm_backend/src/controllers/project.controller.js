@@ -21,6 +21,10 @@ export const getProjects = asyncHandler(async (req, res) => {
     };
   }
 
+  if (req.query.client && mongoose.Types.ObjectId.isValid(req.query.client)) {
+    filter = { ...filter, client: req.query.client };
+  }
+
   const projects = await Project.find(filter)
     .populate("projectManager", "name email designation role")
     .populate("client", "name company email phone")

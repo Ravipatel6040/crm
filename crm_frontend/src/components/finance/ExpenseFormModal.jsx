@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Modal, Button, Field, Input, Select } from "../common";
+import { useGetAppSettingsQuery } from "../../store/api/apiSlice";
 
-const categories = ["Software", "Marketing", "Operations", "Salary", "Travel", "Other"];
+// Used only until Settings finishes loading — must match Settings.model.js's
+// DEFAULT_OPTIONS on the backend.
+const FALLBACK_CATEGORIES = ["Marketing", "Operations", "Salary", "Software", "Travel", "Other"];
 
 const empty = {
   title: "",
@@ -12,6 +15,10 @@ const empty = {
 };
 
 export default function ExpenseFormModal({ open, onClose, onSave, initial }) {
+  const { data: settingsData } = useGetAppSettingsQuery();
+  const settings = settingsData?.data ?? settingsData ?? {};
+  const categories = settings.options?.expenseCategories?.length ? settings.options.expenseCategories : FALLBACK_CATEGORIES;
+
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState({});
 

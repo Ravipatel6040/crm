@@ -18,7 +18,18 @@ import api from "../services/api";
 export function axiosBaseQuery() {
   return async ({ url, method = "GET", data, params, headers }) => {
     try {
-      const result = await api({ url, method, data, params, headers });
+      // The shared axios instance defaults every request to
+      // Content-Type: application/json. A FormData body (file uploads)
+      // needs its own multipart boundary instead — clearing the header lets
+      // axios/the browser set the correct one automatically.
+      const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+      const result = await api({
+        url,
+        method,
+        data,
+        params,
+        headers: isFormData ? { ...headers, "Content-Type": undefined } : headers,
+      });
       return { data: result.data };
     } catch (axiosError) {
       const err = axiosError;

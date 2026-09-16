@@ -396,7 +396,11 @@ export const apiSlice = createApi({
       providesTags: [{ type: "Document", id: "LIST" }],
     }),
     uploadDocument: builder.mutation({
-      query: (formData) => ({ url: "/documents", method: "POST", data: formData, headers: { "Content-Type": "multipart/form-data" } }),
+      // `formData` is a FormData instance built by the caller (file + client/project/type/name).
+      // No explicit Content-Type here — axiosBaseQuery detects FormData and
+      // lets axios set the multipart boundary itself; hardcoding the header
+      // without a boundary breaks multer's parsing on the backend.
+      query: (formData) => ({ url: "/documents", method: "POST", data: formData }),
       invalidatesTags: [{ type: "Document", id: "LIST" }],
     }),
     deleteDocument: builder.mutation({

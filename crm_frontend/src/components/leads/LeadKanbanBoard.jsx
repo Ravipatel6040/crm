@@ -1,9 +1,10 @@
-import { pipelineStages } from "../../services/mockData";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { Avatar } from "../common";
 import { Mail, Phone, Calendar, DollarSign } from "lucide-react";
 
-export default function LeadKanbanBoard({ leads, onStatusChange, setViewing }) {
+const FALLBACK_STAGES = ["New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost"];
+
+export default function LeadKanbanBoard({ leads, stages = FALLBACK_STAGES, onStatusChange, setViewing }) {
   const handleDragStart = (e, leadId) => {
     e.dataTransfer.setData("leadId", leadId);
   };
@@ -25,7 +26,7 @@ export default function LeadKanbanBoard({ leads, onStatusChange, setViewing }) {
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x h-full min-h-[600px] w-full">
-      {pipelineStages.map((stage) => {
+      {stages.map((stage) => {
         const stageLeads = leads.filter((l) => l.status === stage);
         return (
           <div

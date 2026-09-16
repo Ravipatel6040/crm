@@ -248,9 +248,12 @@ export default function FollowUps() {
 
   const handleMarkDone = async (lead) => {
     try {
+      // Only clear the due follow-up and log what happened — don't force a
+      // pipeline stage. The lead may already be past Proposal (e.g. at
+      // Negotiation); forcing "Proposal" here would demote it.
       await updateLead({
         id: lead.id || lead._id,
-        status: "Proposal",
+        nextFollowUp: null,
         notes: lead.notes ? `${lead.notes} (Follow-up completed on ${new Date().toLocaleDateString()})` : "Follow-up completed",
       }).unwrap();
       toast?.push(`Follow-up marked complete for ${lead.name}`);
@@ -527,7 +530,7 @@ export default function FollowUps() {
             <Pagination
               page={page}
               totalPages={totalPages}
-              onPageChange={setPage}
+              onChange={setPage}
               totalItems={totalItems}
               pageSize={pageSize}
             />

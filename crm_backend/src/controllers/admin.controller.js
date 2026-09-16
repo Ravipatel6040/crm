@@ -176,6 +176,9 @@ export const getUsers = asyncHandler(async (req, res) => {
   if (req.query.role) {
     filter.role = req.query.role;
   }
+  if (req.query.status) {
+    filter.status = req.query.status;
+  }
 
   // Archived accounts are hidden unless explicitly asked for.
   if (req.query.includeArchived !== "true") {

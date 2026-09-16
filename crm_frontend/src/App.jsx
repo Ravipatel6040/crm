@@ -15,6 +15,8 @@ import Clients from "./pages/clients/Clients";
 import ClientDetail from "./pages/clients/ClientDetail";
 import Projects from "./pages/projects/Projects";
 import ProjectDetail from "./pages/projects/ProjectDetail";
+import Tasks from "./pages/projects/Tasks";
+import Requirements from "./pages/projects/Requirements";
 import Invoices from "./pages/invoices/Invoices";
 import Payments from "./pages/payments/Payments";
 import Expenses from "./pages/finance/Expenses";
@@ -29,19 +31,6 @@ import Profile from "./pages/settings/Profile";
 import Settings from "./pages/settings/Settings";
 import Accounts from "./pages/users/Accounts";
 import ActivityLogs from "./pages/activity/ActivityLogs";
-import { Wrench } from "lucide-react";
-
-function Placeholder({ title }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="h-16 w-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
-        <Wrench size={32} />
-      </div>
-      <h1 className="text-2xl font-bold text-slate-800 mb-2">{title} Page</h1>
-      <p className="text-slate-500 max-w-md">This page is currently under construction. Check back soon for updates!</p>
-    </div>
-  );
-}
 
 function Protected({ routeKey, children }) {
   return (
@@ -83,8 +72,8 @@ export default function App() {
 
               <Route path="/projects" element={<Protected routeKey="projects"><Projects /></Protected>} />
               <Route path="/projects/:id" element={<Protected routeKey="projects"><ProjectDetail /></Protected>} />
-              <Route path="/requirements" element={<Navigate to="/projects" replace />} />
-              <Route path="/tasks" element={<Protected routeKey="tasks"><Placeholder title="Tasks" /></Protected>} />
+              <Route path="/requirements" element={<Protected routeKey="requirements"><Requirements /></Protected>} />
+              <Route path="/tasks" element={<Protected routeKey="tasks"><Tasks /></Protected>} />
 
               <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
               <Route path="/marketing/dashboard" element={<Navigate to="/marketing/campaigns" replace />} />
@@ -99,7 +88,7 @@ export default function App() {
 
               <Route path="/reports" element={<Protected routeKey="reports"><Reports /></Protected>} />
               <Route path="/communication" element={<Protected routeKey="calls"><Communication /></Protected>} />
-              <Route path="/documents" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/documents" element={<Protected routeKey="documents"><Documents /></Protected>} />
 
               <Route path="/activity" element={<Protected routeKey="audit"><ActivityLogs /></Protected>} />
               <Route path="/accounts" element={<Protected routeKey="team"><Accounts /></Protected>} />

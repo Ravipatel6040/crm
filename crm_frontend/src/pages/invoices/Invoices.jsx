@@ -213,7 +213,7 @@ export default function Invoices() {
             <Pagination
               page={page}
               totalPages={totalPages}
-              onPageChange={setPage}
+              onChange={setPage}
               pageSize={pageSize}
               totalItems={totalItems}
             />
@@ -242,8 +242,8 @@ export default function Invoices() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Delete Invoice"
-        message={`Are you sure you want to delete invoice "${deleteTarget?.invoiceNumber}"? This action cannot be undone.`}
-        confirmText="Delete"
+        description={`Are you sure you want to delete invoice "${deleteTarget?.invoiceNumber}"? This action cannot be undone.`}
+        confirmLabel="Delete"
         tone="danger"
       />
     </div>

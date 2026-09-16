@@ -13,15 +13,21 @@ import {
   useGetExpensesQuery,
   useCreateExpenseMutation,
   useUpdateExpenseMutation,
-  useDeleteExpenseMutation
+  useDeleteExpenseMutation,
+  useGetAppSettingsQuery,
 } from "../../store/api/apiSlice";
 
-const categories = ["Software", "Marketing", "Operations", "Salary", "Travel", "Other"];
+// Used only until Settings finishes loading — must match Settings.model.js's
+// DEFAULT_OPTIONS on the backend.
+const FALLBACK_CATEGORIES = ["Marketing", "Operations", "Salary", "Software", "Travel", "Other"];
 
 export default function Expenses() {
   const toast = useToast();
 
   const { data: expensesData, isLoading } = useGetExpensesQuery();
+  const { data: settingsData } = useGetAppSettingsQuery();
+  const settings = settingsData?.data ?? settingsData ?? {};
+  const categories = settings.options?.expenseCategories?.length ? settings.options.expenseCategories : FALLBACK_CATEGORIES;
   const [createExpense] = useCreateExpenseMutation();
   const [updateExpense] = useUpdateExpenseMutation();
   const [deleteExpense] = useDeleteExpenseMutation();
@@ -189,7 +195,7 @@ export default function Expenses() {
             <Pagination
               page={page}
               totalPages={totalPages}
-              onPageChange={setPage}
+              onChange={setPage}
               pageSize={pageSize}
               totalItems={totalItems}
             />
@@ -211,8 +217,8 @@ export default function Expenses() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Delete Expense"
-        message={`Are you sure you want to delete expense "${deleteTarget?.title}"?`}
-        confirmText="Delete"
+        description={`Are you sure you want to delete expense "${deleteTarget?.title}"?`}
+        confirmLabel="Delete"
         tone="danger"
       />
     </div>
