@@ -11,6 +11,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { logAudit, diffSummary } from "../utils/audit.js";
+import { seedWelcomeNotifications } from "./notification.controller.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -569,6 +570,8 @@ export const adminLogin = asyncHandler(async (req, res) => {
   admin.refreshTokenHash = hashedRefreshToken;
   admin.lastLoginAt = new Date();
   await admin.save();
+
+  await seedWelcomeNotifications(admin);
 
   // 8. Set cookies + respond
   return res

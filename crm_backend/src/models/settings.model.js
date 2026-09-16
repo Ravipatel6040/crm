@@ -7,8 +7,15 @@ import mongoose from "mongoose";
  * frontend reads from /auth/me.
  */
 
-// Defaults mirror what was previously hard-coded in the schemas and in the
-// frontend's constants/roles.js + services/mockData.js.
+// Defaults mirror what was previously hard-coded as Mongoose `enum` arrays on
+// Lead.source / Lead.status / Expense.category. Those enums have since been
+// removed from the schemas (see lead.model.js, expense.model.js) — this list
+// is now the single source of truth, enforced by each controller via
+// getOptionList() below instead of by the schema. Keep it aligned with
+// whatever categories/sources/stages already exist in real documents; this
+// list previously drifted from Expense.category's actual values ("Salaries"
+// vs "Salary", missing "Operations") which would have rejected valid
+// historical data had validation been added against it as-is.
 export const DEFAULT_OPTIONS = {
   leadSources: [
     "Website", "Referral", "LinkedIn", "Facebook", "Instagram",
@@ -18,7 +25,7 @@ export const DEFAULT_OPTIONS = {
     "New", "Contacted", "Follow-up", "Proposal", "Negotiation", "Won", "Lost",
   ],
   expenseCategories: [
-    "Salaries", "Software", "Marketing", "Office", "Travel", "Utilities", "Other",
+    "Marketing", "Operations", "Salary", "Software", "Travel", "Other",
   ],
   projectStages: [
     "Planning", "Requirements", "Development", "Testing",
@@ -129,5 +136,23 @@ export const getPermissionsForRole = async (role) => {
     return matrix[role] || DEFAULT_PERMISSIONS[role] || [];
   } catch (err) {
     return DEFAULT_PERMISSIONS[role] || [];
+  }
+};
+
+/**
+ * The current allowed values for a configurable dropdown (leadSources,
+ * pipelineStages, expenseCategories, projectStages), read from the live
+ * Settings document. This is what schemas used to hardcode as `enum` — call
+ * this from a controller instead of trusting Mongoose to reject bad values,
+ * since the schema no longer knows the list and Settings can change it at
+ * any time without a deploy.
+ */
+export const getOptionList = async (groupKey) => {
+  try {
+    const settings = await getSettings();
+    const list = settings.options?.[groupKey];
+    return Array.isArray(list) && list.length ? list : (DEFAULT_OPTIONS[groupKey] || []);
+  } catch (err) {
+    return DEFAULT_OPTIONS[groupKey] || [];
   }
 };

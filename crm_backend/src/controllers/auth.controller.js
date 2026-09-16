@@ -7,6 +7,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { logAudit } from "../utils/audit.js";
+import { seedWelcomeNotifications } from "./notification.controller.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -76,6 +77,8 @@ export const login = asyncHandler(async (req, res) => {
   user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
   user.lastLoginAt = new Date();
   await user.save();
+
+  await seedWelcomeNotifications(user);
 
   const userDisplayName =
     user.name && user.name !== "User"

@@ -8,6 +8,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { logAudit } from "../utils/audit.js";
+import { seedWelcomeNotifications } from "./notification.controller.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -78,6 +79,8 @@ export const loginUser = asyncHandler(async (req, res) => {
   user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
   user.lastLoginAt = new Date();
   await user.save();
+
+  await seedWelcomeNotifications(user);
 
   return res
     .cookie("accessToken", accessToken, accessCookieOptions)

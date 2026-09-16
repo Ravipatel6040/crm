@@ -3,6 +3,7 @@ import { Lead } from "../models/lead.model.js";
 import { Activity } from "../models/activity.model.js";
 import { Client } from "../models/client.model.js";
 import { Project } from "../models/project.model.js";
+import { getOptionList } from "../models/settings.model.js";
 import { createNotificationHelper } from "./notification.controller.js";
 
 const generateLeadId = async () => {
@@ -79,6 +80,26 @@ export const createLead = async (req, res, next) => {
         success: false,
         message: "Invalid assigned user",
       });
+    }
+
+    if (source) {
+      const allowedSources = await getOptionList("leadSources");
+      if (!allowedSources.includes(source)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid source. Valid options: ${allowedSources.join(", ")}`,
+        });
+      }
+    }
+
+    if (status) {
+      const allowedStatuses = await getOptionList("pipelineStages");
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status. Valid options: ${allowedStatuses.join(", ")}`,
+        });
+      }
     }
 
     const leadId = await generateLeadId();
@@ -357,6 +378,26 @@ export const updateLead = async (req, res, next) => {
       });
     }
 
+    if (source !== undefined && source) {
+      const allowedSources = await getOptionList("leadSources");
+      if (!allowedSources.includes(source)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid source. Valid options: ${allowedSources.join(", ")}`,
+        });
+      }
+    }
+
+    if (status !== undefined && status) {
+      const allowedStatuses = await getOptionList("pipelineStages");
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status. Valid options: ${allowedStatuses.join(", ")}`,
+        });
+      }
+    }
+
     const updateData = {};
     if (name !== undefined) updateData.name = name?.trim();
     if (company !== undefined) updateData.company = company?.trim();
@@ -595,6 +636,11 @@ export const updateLeadActivity = async (req, res, next) => {
       return res.status(403).json({ success: false, message: "System activities cannot be edited" });
     }
 
+    const isOwner = activity.createdBy && String(activity.createdBy) === String(req.user._id);
+    if (!isOwner && req.user.role !== "ADMIN") {
+      return res.status(403).json({ success: false, message: "You can only edit activities you logged" });
+    }
+
     activity.content = content;
     await activity.save();
 
@@ -621,6 +667,11 @@ export const deleteLeadActivity = async (req, res, next) => {
 
     if (activity.type === "System") {
       return res.status(403).json({ success: false, message: "System activities cannot be deleted" });
+    }
+
+    const isOwner = activity.createdBy && String(activity.createdBy) === String(req.user._id);
+    if (!isOwner && req.user.role !== "ADMIN") {
+      return res.status(403).json({ success: false, message: "You can only delete activities you logged" });
     }
 
     await activity.deleteOne();

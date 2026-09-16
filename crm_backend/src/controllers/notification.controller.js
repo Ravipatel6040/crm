@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Notification } from "../models/notification.model.js";
 import { Lead } from "../models/lead.model.js";
+import { User } from "../models/user.model.js";
 
 function formatTimeAgo(date) {
   const now = new Date();
@@ -16,73 +17,16 @@ function formatTimeAgo(date) {
 }
 
 // ─── 1. Get all notifications for current user ─────────────────────────────
+// Pure read. Seeding a new user's first notifications happens once at login
+// (see seedWelcomeNotifications below), not here — a GET must never have a
+// write side effect, and doing it here let concurrent requests double-insert.
 export const getNotifications = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  let notifications = await Notification.find({ user: userId })
+  const notifications = await Notification.find({ user: userId })
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
-
-  // If user has zero notifications, generate contextual initial notifications from real database data
-  if (notifications.length === 0) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const followUpsToday = await Lead.find({
-      $or: [{ assignedTo: userId }, { assignedTo: null }],
-      nextFollowUp: { $gte: todayStart, $lte: todayEnd },
-    }).limit(3).lean();
-
-    const initialNotifs = [];
-
-    followUpsToday.forEach((f) => {
-      initialNotifs.push({
-        user: userId,
-        title: "Follow-up due today",
-        message: `Scheduled follow-up with ${f.name} (${f.company || "Prospect"}) is due today.`,
-        type: "FOLLOW_UP_DUE",
-        link: "/follow-ups",
-        read: false,
-      });
-    });
-
-    const recentLeads = await Lead.find({
-      $or: [{ assignedTo: userId }, { assignedTo: null }],
-    })
-      .sort({ createdAt: -1 })
-      .limit(2)
-      .lean();
-
-    recentLeads.forEach((l) => {
-      initialNotifs.push({
-        user: userId,
-        title: `Lead: ${l.name}`,
-        message: `${l.company || "Prospect"} is currently in '${l.status}' stage with budget ₹${l.budget?.toLocaleString("en-IN") || "0"}.`,
-        type: "LEAD_ASSIGNED",
-        link: "/leads",
-        read: false,
-      });
-    });
-
-    initialNotifs.push({
-      user: userId,
-      title: "CRM System Notification",
-      message: "Notification and sound alert system is active and running.",
-      type: "SYSTEM",
-      link: "/dashboard",
-      read: true,
-    });
-
-    await Notification.insertMany(initialNotifs);
-
-    notifications = await Notification.find({ user: userId })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-  }
 
   const result = notifications.map((n) => ({
     id: n._id.toString(),
@@ -153,5 +97,85 @@ export const createNotificationHelper = async ({ user, title, message, type = "G
   } catch (err) {
     console.error("Error creating notification helper:", err);
     return null;
+  }
+};
+
+// ─── Seed a new user's first notifications, exactly once ───────────────────
+// Called from every login handler (auth/user/admin controllers) right after
+// a successful sign-in — never from a GET. `notificationsSeeded` is claimed
+// atomically so two concurrent logins (e.g. two tabs) can't both win and
+// double-insert; the `$ne: true` match also covers accounts created before
+// this field existed. The existingCount check is a second guard so accounts
+// that already accumulated real notifications under the old GET-based path
+// don't get a redundant welcome batch layered on top.
+export const seedWelcomeNotifications = async (user) => {
+  try {
+    if (!user?._id) return;
+
+    const claimed = await User.findOneAndUpdate(
+      { _id: user._id, notificationsSeeded: { $ne: true } },
+      { $set: { notificationsSeeded: true } }
+    );
+    if (!claimed) return;
+
+    const existingCount = await Notification.countDocuments({ user: user._id });
+    if (existingCount > 0) return;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const userId = user._id;
+    const initialNotifs = [];
+
+    const followUpsToday = await Lead.find({
+      $or: [{ assignedTo: userId }, { assignedTo: null }],
+      nextFollowUp: { $gte: todayStart, $lte: todayEnd },
+    }).limit(3).lean();
+
+    followUpsToday.forEach((f) => {
+      initialNotifs.push({
+        user: userId,
+        title: "Follow-up due today",
+        message: `Scheduled follow-up with ${f.name} (${f.company || "Prospect"}) is due today.`,
+        type: "FOLLOW_UP_DUE",
+        link: "/follow-ups",
+        read: false,
+      });
+    });
+
+    const recentLeads = await Lead.find({
+      $or: [{ assignedTo: userId }, { assignedTo: null }],
+    })
+      .sort({ createdAt: -1 })
+      .limit(2)
+      .lean();
+
+    recentLeads.forEach((l) => {
+      initialNotifs.push({
+        user: userId,
+        title: `Lead: ${l.name}`,
+        message: `${l.company || "Prospect"} is currently in '${l.status}' stage with budget ₹${l.budget?.toLocaleString("en-IN") || "0"}.`,
+        type: "LEAD_ASSIGNED",
+        link: "/leads",
+        read: false,
+      });
+    });
+
+    initialNotifs.push({
+      user: userId,
+      title: "CRM System Notification",
+      message: "Notification and sound alert system is active and running.",
+      type: "SYSTEM",
+      link: "/dashboard",
+      read: true,
+    });
+
+    if (initialNotifs.length > 0) {
+      await Notification.insertMany(initialNotifs);
+    }
+  } catch (err) {
+    console.error("Error seeding welcome notifications:", err);
   }
 };

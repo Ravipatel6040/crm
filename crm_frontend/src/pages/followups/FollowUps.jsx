@@ -169,14 +169,12 @@ export default function FollowUps() {
 
   // Filter leads based on role & follow-up data
   const relevantLeads = useMemo(() => {
+    // getLeads flattens assignedTo/assignedUser to plain string ids server
+    // side, so this only ever needs one comparison against the local user id.
+    const currentUserId = user?.id || user?._id;
     return rawLeads.filter((l) => {
       if (isSales) {
-        const isMine =
-          l.assignedTo === user?.id ||
-          l.assignedTo === user?._id ||
-          l.assignedUser?.id === user?.id ||
-          l.assignedUser?.id === user?._id;
-        return isMine;
+        return l.assignedTo === currentUserId || l.assignedUser?.id === currentUserId;
       }
       return true;
     });

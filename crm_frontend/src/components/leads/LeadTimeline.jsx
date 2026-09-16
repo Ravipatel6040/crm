@@ -128,7 +128,13 @@ export default function LeadTimeline({ leadId }) {
             {activities.map((activity) => {
               const Conf = activityConfig[activity.type] || activityConfig.System;
               const Icon = Conf.icon;
-              const canEdit = activity.type !== 'System' && (activity.createdBy?._id === user?._id || activity.createdBy?.id === user?.id || user?.role === 'ADMIN');
+              // The local user object only carries `id`; a populated createdBy
+              // only carries `_id` — compare across both, stringified, since
+              // one side may be a Mongo ObjectId and the other a plain string.
+              const creatorId = activity.createdBy?._id || activity.createdBy?.id;
+              const currentUserId = user?.id || user?._id;
+              const isOwner = creatorId && currentUserId && String(creatorId) === String(currentUserId);
+              const canEdit = activity.type !== 'System' && (isOwner || user?.role === 'ADMIN');
               
               return (
                 <div key={activity._id || activity.id} className="relative pl-6">

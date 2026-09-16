@@ -116,11 +116,13 @@ export default function Leads() {
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
+      // getLeads flattens assignedTo/assignedUser to plain string ids server
+      // side, and the local user object only ever carries `id` — so this is
+      // just a single string comparison, not the raw-Mongo-doc case that bit
+      // LeadTimeline (see components/leads/LeadTimeline.jsx).
+      const currentUserId = user?.id || user?._id;
       const isAssignedToMe =
-        l.assignedTo === user?.id ||
-        l.assignedTo === user?._id ||
-        l.assignedUser?.id === user?.id ||
-        l.assignedUser?.id === user?._id;
+        l.assignedTo === currentUserId || l.assignedUser?.id === currentUserId;
 
       if (isSales && salesTab === "assigned" && !isAssignedToMe) {
         return false;

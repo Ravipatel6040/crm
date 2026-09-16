@@ -33,19 +33,12 @@ const leadSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Valid values come from Settings.options.leadSources (configurable by an
+    // admin), enforced in lead.controller.js — not a schema enum, since that
+    // would need a deploy every time the list changes.
     source: {
       type: String,
-      enum: [
-        "Website",
-        "Referral",
-        "LinkedIn",
-        "Facebook",
-        "Instagram",
-        "Google",
-        "Cold Call",
-        "Email",
-        "Other",
-      ],
+      trim: true,
       default: "Website",
     },
 
@@ -85,17 +78,13 @@ const leadSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Valid values come from Settings.options.pipelineStages, enforced in
+    // lead.controller.js. "Won" and "Lost" are also referenced directly by
+    // convertLead() and the dashboard aggregations below, so removing those
+    // two from Settings would silently break conversion — not schema-enforced.
     status: {
       type: String,
-      enum: [
-        "New",
-        "Contacted",
-        "Follow-up",
-        "Proposal",
-        "Negotiation",
-        "Won",
-        "Lost",
-      ],
+      trim: true,
       default: "New",
     },
 

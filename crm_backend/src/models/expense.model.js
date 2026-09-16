@@ -6,9 +6,11 @@ const expenseSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Valid values come from Settings.options.expenseCategories, enforced in
+    // finance.controller.js — not a schema enum (see settings.model.js).
     category: {
       type: String,
-      enum: ["Marketing", "Operations", "Salary", "Software", "Travel", "Other"],
+      trim: true,
       default: "Other",
     },
     amount: {

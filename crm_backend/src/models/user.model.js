@@ -70,6 +70,14 @@ const userSchema = new mongoose.Schema(
       default: null
     },
 
+    // Flips true the first time this user's welcome notifications are
+    // seeded, so it only ever happens once regardless of how many times
+    // getNotifications is polled or how many tabs log in concurrently.
+    notificationsSeeded: {
+      type: Boolean,
+      default: false
+    },
+
     // Users are archived rather than deleted so their leads, projects and
     // audit history keep resolving to a real name.
     isArchived: {

@@ -4,8 +4,10 @@ import { Payment } from "../models/payment.model.js";
 import { Expense } from "../models/expense.model.js";
 import { Client } from "../models/client.model.js";
 import { Project } from "../models/project.model.js";
+import { getOptionList } from "../models/settings.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 
 // ==========================================
 // 1. INVOICES CONTROLLERS
@@ -300,6 +302,11 @@ export const getExpenses = asyncHandler(async (req, res) => {
 export const createExpense = asyncHandler(async (req, res) => {
   const { title, category = "Other", amount, date, notes } = req.body;
 
+  const allowedCategories = await getOptionList("expenseCategories");
+  if (!allowedCategories.includes(category)) {
+    throw new ApiError(400, `Invalid category. Valid options: ${allowedCategories.join(", ")}`);
+  }
+
   const expense = await Expense.create({
     title,
     category,
@@ -318,6 +325,13 @@ export const updateExpense = asyncHandler(async (req, res) => {
 
   if (!expense) {
     return res.status(404).json(new ApiResponse(404, null, "Expense not found"));
+  }
+
+  if (req.body.category !== undefined) {
+    const allowedCategories = await getOptionList("expenseCategories");
+    if (!allowedCategories.includes(req.body.category)) {
+      throw new ApiError(400, `Invalid category. Valid options: ${allowedCategories.join(", ")}`);
+    }
   }
 
   const allowedFields = ["title", "category", "amount", "date", "notes"];
