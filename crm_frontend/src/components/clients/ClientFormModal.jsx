@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Modal, Button, Field, Input, Select } from "../../components/common";
 
-const empty = { name: "", company: "", email: "", phone: "", status: "Active", contractValue: "" };
+const empty = { name: "", company: "", email: "", phone: "", status: "Active" };
 
 export default function ClientFormModal({ open, onClose, onSave, initial }) {
   const [form, setForm] = useState(empty);
@@ -21,15 +21,10 @@ export default function ClientFormModal({ open, onClose, onSave, initial }) {
     if (!form.email.trim()) errs.email = "Email is required";
     setErrors(errs);
     if (Object.keys(errs).length) return;
-    onSave({
-      ...form,
-      contractValue: Number(form.contractValue) || 0,
-      id: initial?.id || `C-${Math.floor(500 + Math.random() * 400)}`,
-      projects: initial?.projects || 0,
-      paid: initial?.paid || 0,
-      pending: initial?.pending || Number(form.contractValue) || 0,
-      lastActivity: initial?.lastActivity || new Date().toISOString().slice(0, 10),
-    });
+    // Contract value / paid / pending are derived server-side from real
+    // invoices and payments (see attachClientStats in client.controller.js)
+    // — they're never submitted here, only name/company/email/phone/status.
+    onSave({ ...form, id: initial?.id });
   };
 
   return (
@@ -57,9 +52,6 @@ export default function ClientFormModal({ open, onClose, onSave, initial }) {
         </Field>
         <Field label="Phone">
           <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-        </Field>
-        <Field label="Contract Value (₹)">
-          <Input type="number" value={form.contractValue} onChange={(e) => set("contractValue", e.target.value)} />
         </Field>
         <Field label="Status">
           <Select value={form.status} onChange={(e) => set("status", e.target.value)}>

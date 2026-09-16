@@ -23,7 +23,7 @@ const clientSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
+      enum: ["Active", "On Hold", "Inactive"],
       default: "Active",
     },
     isHighValue: {

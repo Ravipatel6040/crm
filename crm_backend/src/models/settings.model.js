@@ -37,17 +37,19 @@ export const DEFAULT_PERMISSIONS = {
   ADMIN: ["*"],
   BD_SALES: [
     "dashboard", "sales", "leads", "my_leads", "follow_ups", "calls",
-    "clients", "projects", "reports", "settings",
+    "clients", "projects", "documents", "reports", "settings",
   ],
   MARKETING: [
     "dashboard", "marketing", "campaigns", "lead_sources", "analytics",
     "leads", "reports", "settings",
   ],
   PROJECT_MANAGER: [
-    "dashboard", "clients", "projects", "tasks", "reports", "settings",
+    "dashboard", "clients", "projects", "tasks", "requirements", "documents",
+    "reports", "settings",
   ],
   FINANCE: [
     "dashboard", "finance", "invoices", "payments", "expenses", "revenue",
+    "documents",
     "reports", "settings",
   ],
 };

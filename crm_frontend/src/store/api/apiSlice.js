@@ -15,7 +15,7 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: axiosBaseQuery(),
   tagTypes: [
-    "Auth", "User", "Lead", "Deal", "Client", "Project", "Task", "Requirement", "Payment", "Invoice", "Expense",
+    "Auth", "User", "Lead", "Client", "Project", "Task", "Requirement", "Payment", "Invoice", "Expense",
     "Campaign", "LeadSource", "Communication", "Document", "Notification",
     "ActivityLog", "Report", "Dashboard", "Product", "Service", "Settings",
   ],
@@ -167,20 +167,6 @@ export const apiSlice = createApi({
     deleteLeadActivity: builder.mutation({
       query: ({ id, activityId }) => ({ url: `/leads/${id}/activities/${activityId}`, method: "DELETE" }),
       invalidatesTags: (r, e, { id }) => [{ type: "ActivityLog", id: `LEAD-${id}` }],
-    }),
-
-
-    // ---------------------------------------------------------------- 4. Pipeline
-    getDeals: builder.query({
-      query: () => ({ url: "/pipeline/deals", method: "GET" }),
-      providesTags: [{ type: "Deal", id: "LIST" }],
-    }),
-    updateDealStage: builder.mutation({
-      query: ({ id, status }) => ({ url: `/pipeline/deals/${id}/stage`, method: "PATCH", data: { status } }),
-      invalidatesTags: [{ type: "Deal", id: "LIST" }, { type: "Lead", id: "LIST" }],
-    }),
-    getPipelineStages: builder.query({
-      query: () => ({ url: "/pipeline/stages", method: "GET" }),
     }),
 
     // ---------------------------------------------------------------- 5. Clients / Customers
@@ -539,7 +525,6 @@ export const {
   useGetUserWorkloadQuery, useForceLogoutUserMutation,
   useGetAuditLogsQuery, useGetAppSettingsQuery, useUpdateAppSettingsMutation, useResetAppSettingsMutation, useGetTeamPerformanceQuery,
   useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useConvertLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation,
-  useGetDealsQuery, useUpdateDealStageMutation, useGetPipelineStagesQuery,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,
   useGetProjectsQuery, useGetProjectQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation,
   useGetProjectManagersQuery,

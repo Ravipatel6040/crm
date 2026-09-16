@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import {
   Card, Badge, Avatar, Tabs, ProgressBar, Button, EmptyState, LoadingState,
-  Field, Select, Textarea, Input, useToast, ConfirmDialog,
+  Field, Select, Textarea, useToast, ConfirmDialog,
 } from "../../components/common";
 import { formatCurrency, formatDate, formatRelative } from "../../utils/format";
 import {
