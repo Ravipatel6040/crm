@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Download, Send, CheckCircle2, XCircle, RotateCcw, Loader2 } from "lucide-react";
-import { Modal, Button, Badge } from "../common";
-import { formatDate, formatCurrency } from "../../utils/format";
-import { displayStatus, QUOTATION_STATUS_TONE } from "../../utils/quotation";
+import { Download, Send, Mail, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { Modal, Button, Badge, useToast } from "../common";
+import { formatDate, formatDateTime, formatCurrency } from "../../utils/format";
+import { displayStatus, amountInWords, QUOTATION_STATUS_TONE } from "../../utils/quotation";
 import { downloadQuotationPdf } from "../../utils/quotationPdf";
 
 /**
@@ -10,8 +10,9 @@ import { downloadQuotationPdf } from "../../utils/quotationPdf";
  * white in both themes so what's on screen matches the downloaded PDF.
  */
 export default function QuotationViewModal({
-  quotation, open, onClose, organization = {}, canManage, onStatusChange, busy,
+  quotation, open, onClose, organization = {}, canManage, onStatusChange, onSend, busy,
 }) {
+  const toast = useToast();
   const [downloading, setDownloading] = useState(false);
   if (!quotation) return null;
 
@@ -23,7 +24,9 @@ export default function QuotationViewModal({
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      await downloadQuotationPdf(q, { ...organization, name: orgName });
+      await downloadQuotationPdf(q);
+    } catch (err) {
+      toast?.push(err.message, "error");
     } finally {
       setDownloading(false);
     }
@@ -32,7 +35,7 @@ export default function QuotationViewModal({
   const actions = [];
   if (canManage) {
     if (q.status === "Draft") {
-      actions.push({ label: "Mark as Sent", icon: Send, next: "Sent", primary: true });
+      actions.push({ label: "Mark as Sent", icon: Send, next: "Sent" });
     } else if (q.status === "Sent") {
       actions.push({ label: "Mark Accepted", icon: CheckCircle2, next: "Accepted", primary: true });
       actions.push({ label: "Mark Rejected", icon: XCircle, next: "Rejected" });
@@ -66,9 +69,14 @@ export default function QuotationViewModal({
                 {a.label}
               </Button>
             ))}
-            <Button variant="outline" icon={downloading ? Loader2 : Download} onClick={handleDownload} disabled={downloading}>
+            <Button variant="outline" icon={Download} onClick={handleDownload} loading={downloading}>
               Download PDF
             </Button>
+            {canManage && (
+              <Button icon={Mail} onClick={() => onSend?.(q)}>
+                {q.emails?.length ? "Email again" : "Email to client"}
+              </Button>
+            )}
             <Button variant="ghost" onClick={onClose}>Close</Button>
           </div>
         </div>
@@ -145,9 +153,21 @@ export default function QuotationViewModal({
           </table>
         </div>
 
-        {/* Totals */}
-        <div className="flex justify-end">
-          <div className="w-full sm:w-72 flex flex-col gap-2 text-xs">
+        {/* Amount in words / payment details, and totals */}
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-6">
+          <div className="flex-1 min-w-0 text-xs flex flex-col gap-4">
+            <div>
+              <p className="font-bold uppercase tracking-wider text-slate-400 mb-1">Amount in words</p>
+              <p className="italic text-slate-700 leading-relaxed">{amountInWords(q.total)}</p>
+            </div>
+            {organization.paymentDetails && (
+              <div>
+                <p className="font-bold uppercase tracking-wider text-slate-400 mb-1">Payment details</p>
+                <p className="whitespace-pre-line text-slate-600 leading-relaxed">{organization.paymentDetails}</p>
+              </div>
+            )}
+          </div>
+          <div className="w-full sm:w-72 shrink-0 flex flex-col gap-2 text-xs">
             <div className="flex justify-between text-slate-500">
               <span>Subtotal</span>
               <span className="font-semibold text-slate-800 tabular-nums">{formatCurrency(q.subtotal)}</span>
@@ -189,6 +209,18 @@ export default function QuotationViewModal({
           </div>
         )}
 
+        {/* Acceptance */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="rounded-lg border border-slate-200 p-4">
+            <p className="font-bold uppercase tracking-wider text-slate-400 mb-6">Client acceptance</p>
+            <div className="border-t border-slate-300 pt-1.5 text-slate-400">Name, signature &amp; date</div>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-4">
+            <p className="font-bold uppercase tracking-wider text-slate-400 mb-6">For {orgName}</p>
+            <div className="border-t border-slate-300 pt-1.5 text-slate-400">Authorised signatory</div>
+          </div>
+        </div>
+
         {/* Who it's from */}
         {preparer && (
           <div className="pt-5 border-t border-slate-200 text-xs">
@@ -205,6 +237,33 @@ export default function QuotationViewModal({
           </div>
         )}
       </div>
+
+      {q.emails?.length > 0 && (
+        <div className="mx-auto max-w-3xl mt-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+            Email history
+          </p>
+          <ul className="flex flex-col gap-2">
+            {[...q.emails].reverse().map((e) => (
+              <li
+                key={e.id}
+                className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 px-3.5 py-2.5 text-xs"
+              >
+                <Mail size={14} className="mt-0.5 text-primary-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-slate-700 dark:text-slate-200">
+                    Sent to <b>{e.to.join(", ")}</b>
+                    {e.cc?.length > 0 && <> (cc {e.cc.join(", ")})</>}
+                  </p>
+                  <p className="text-slate-400 dark:text-slate-500 mt-0.5">
+                    {formatDateTime(e.sentAt)}{e.sentBy ? ` · by ${e.sentBy.name}` : ""}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Modal>
   );
 }

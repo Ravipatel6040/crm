@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
-  Card, Field, Input, Select, Button, Badge, Tabs, useToast,
+  Card, Field, Input, Textarea, Select, Button, Badge, Tabs, useToast,
   LoadingState, ConfirmDialog,
 } from "../../components/common";
 import { ROLES, ROLE_LABELS } from "../../constants/roles";
@@ -29,7 +29,8 @@ const ROUTE_KEYS = [
 const OPTION_GROUPS = [
   { key: "leadSources", label: "Lead Sources", hint: "Where a lead came from." },
   { key: "pipelineStages", label: "Pipeline Stages", hint: "Order matters — this drives the Kanban board." },
-  { key: "expenseCategories", label: "Expense Categories", hint: "Used when logging an expense." },
+  { key: "expenseDepartments", label: "Expense Departments", hint: "Who an expense belongs to — the Expenses page breaks spending down by these." },
+  { key: "expenseCategories", label: "Expense Categories", hint: "The kind of cost, e.g. Software or Travel." },
   { key: "projectStages", label: "Project Stages", hint: "Lifecycle of a delivery project." },
 ];
 
@@ -188,6 +189,7 @@ export default function Settings() {
         options: {
           leadSources: [...(remote.options?.leadSources || [])],
           pipelineStages: [...(remote.options?.pipelineStages || [])],
+          expenseDepartments: [...(remote.options?.expenseDepartments || [])],
           expenseCategories: [...(remote.options?.expenseCategories || [])],
           projectStages: [...(remote.options?.projectStages || [])],
         },
@@ -330,6 +332,9 @@ export default function Settings() {
               </Field>
               <Field label="Registered Address" className="sm:col-span-2">
                 <Input value={draft.organization.address || ""} onChange={(e) => setOrg("address", e.target.value)} placeholder="Street, City, State, PIN" />
+              </Field>
+              <Field label="Payment Details" hint="Bank / UPI details printed on quotations." className="sm:col-span-2">
+                <Textarea rows={3} value={draft.organization.paymentDetails || ""} onChange={(e) => setOrg("paymentDetails", e.target.value)} placeholder={"Bank: HDFC Bank\nA/C No: 0000 0000 0000\nIFSC: HDFC0000000 · UPI: company@bank"} />
               </Field>
             </div>
           </SectionCard>

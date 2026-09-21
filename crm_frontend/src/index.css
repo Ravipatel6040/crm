@@ -19,28 +19,53 @@ body {
 ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400 dark:bg-slate-600; }
 
 /*
- * Light theme: container boxes get a blue outline.
+ * Light theme: container boxes get a blue outline — on every page.
  *
- * Cards, KPI tiles, table wrappers, popovers etc. are all `div`s that carry an
- * all-sides `border` in a faint slate. Rather than editing that class on every
- * one of them, this recolours those boxes in one place. Only all-sides borders
- * match (`.border` / `.border-2`), so single-side dividers (modal headers and
- * footers, the navbar underline, the sidebar edge, table row lines) and form
- * fields stay neutral. Dark mode is untouched: the rule only applies while
- * `html` lacks the `dark` class. Change the shade here.
+ * Cards, KPI tiles, hero panels, table wrappers, dialogs, popovers etc. all
+ * carry an all-sides `border` in a faint slate. Rather than editing that class
+ * on every one of them, this recolours those boxes in one place.
+ *
+ *  - Only all-sides borders match (`.border` / `.border-2`), so single-side
+ *    dividers (modal headers/footers, the navbar underline, the sidebar edge,
+ *    table row lines) stay neutral.
+ *  - Form controls, buttons, chips and links are excluded; a control-like tile
+ *    that should still be outlined (e.g. a clickable dashboard card) opts in
+ *    with the `outline-box` class.
+ *  - Boxes with a coloured stripe on one side keep that stripe (only the other
+ *    three sides are recoloured); boxes with their own colour (info/alert
+ *    banners) aren't slate, so they're never touched.
+ *  - Dark mode is untouched: everything applies only while `html` lacks `dark`.
+ *
+ * Change the shade here.
  */
 :root { --container-border: #6480cf; } /* primary-400 */
 
-html:not(.dark) :is(div, section, aside, article):is(.border, .border-2):is(
+html:not(.dark) :not(input, select, textarea, button, span, a, img, iframe, label):is(.border, .border-2):is(
   .border-slate-50,
   .border-slate-100,
   .border-slate-200,
   .border-slate-300,
   .border-slate-200\/60,
   .border-slate-200\/80
-) {
+):not([class*="border-l-"], [class*="border-r-"], [class*="border-t-"], [class*="border-b-"]) {
   border-color: var(--container-border);
 }
+
+/* A left stripe (e.g. the Follow-ups KPI cards) keeps its own colour. */
+html:not(.dark) :not(input, select, textarea, button, span, a, img, iframe, label):is(.border, .border-2):is(
+  .border-slate-50,
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300,
+  .border-slate-200\/60,
+  .border-slate-200\/80
+)[class*="border-l-"] {
+  border-top-color: var(--container-border);
+  border-right-color: var(--container-border);
+  border-bottom-color: var(--container-border);
+}
+
+html:not(.dark) .outline-box { border-color: var(--container-border); }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -6,6 +6,9 @@ import {
   createQuotation,
   updateQuotation,
   deleteQuotation,
+  getQuotationPdf,
+  getQuotationEmailDraft,
+  sendQuotation,
 } from "../controllers/quotation.controller.js";
 
 const router = Router();
@@ -19,6 +22,10 @@ const CAN_ACCESS = ["ADMIN", "BD_SALES"];
 router.route("/")
   .get(authorizeRoles(...CAN_ACCESS), getQuotations)
   .post(authorizeRoles(...CAN_ACCESS), createQuotation);
+
+router.get("/:id/pdf", authorizeRoles(...CAN_ACCESS), getQuotationPdf);
+router.get("/:id/email-draft", authorizeRoles(...CAN_ACCESS), getQuotationEmailDraft);
+router.post("/:id/send", authorizeRoles(...CAN_ACCESS), sendQuotation);
 
 router.route("/:id")
   .get(authorizeRoles(...CAN_ACCESS), getQuotationById)

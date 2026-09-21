@@ -82,6 +82,21 @@ const quotationSchema = new mongoose.Schema(
     },
     sentAt: { type: Date, default: null },
 
+    // Every time the quotation was emailed from the CRM (a quotation can be
+    // re-sent, e.g. after a revision), newest last.
+    emails: [
+      {
+        to: { type: [String], default: [] },
+        cc: { type: [String], default: [] },
+        subject: { type: String, default: "" },
+        message: { type: String, default: "" },
+        filename: { type: String, default: "" },
+        messageId: { type: String, default: "" },
+        sentBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+        sentAt: { type: Date, default: Date.now },
+      },
+    ],
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

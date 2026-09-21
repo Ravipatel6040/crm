@@ -33,7 +33,7 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
       />
       <div
         className={classNames(
-          "relative w-full bg-white dark:bg-slate-800 shadow-popover animate-slideUp",
+          "relative w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-transparent shadow-popover animate-slideUp",
           "rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col",
           sizes[size]
         )}

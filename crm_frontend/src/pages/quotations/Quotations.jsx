@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, ScrollText, Send, CheckCircle2, Percent, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, ScrollText, Send, CheckCircle2, Percent, Eye, Pencil, Trash2, Mail } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
   Card, Table, Tr, Td, Badge, Avatar, SearchBar, FilterSelect, Button,
@@ -8,6 +8,7 @@ import {
 import KpiCard from "../../components/dashboard/KpiCard";
 import QuotationFormModal from "../../components/quotations/QuotationFormModal";
 import QuotationViewModal from "../../components/quotations/QuotationViewModal";
+import SendQuotationModal from "../../components/quotations/SendQuotationModal";
 import { formatCurrency, formatDate } from "../../utils/format";
 import { QUOTATION_STATUSES, QUOTATION_STATUS_TONE, displayStatus } from "../../utils/quotation";
 import usePagination from "../../hooks/usePagination";
@@ -45,12 +46,18 @@ export default function Quotations() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewingId, setViewingId] = useState(null);
+  const [sendingId, setSendingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Keep the open document in step with the list after a status change.
   const viewing = useMemo(
     () => quotations.find((q) => q.id === viewingId) || null,
     [quotations, viewingId]
+  );
+
+  const sending = useMemo(
+    () => quotations.find((q) => q.id === sendingId) || null,
+    [quotations, sendingId]
   );
 
   // Editing and deleting are limited to the author (or an admin) — the API
@@ -212,8 +219,13 @@ export default function Quotations() {
                         <Avatar name={sender.name} size="sm" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{sender.name}</p>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
                             {q.sentAt ? `Sent ${formatDate(q.sentAt)}` : "Not sent yet"}
+                            {q.emails?.length > 0 && (
+                              <span className="inline-flex items-center gap-0.5 text-primary-500" title={`Emailed ${q.emails.length} time${q.emails.length === 1 ? "" : "s"}`}>
+                                <Mail size={11} />{q.emails.length}
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -235,6 +247,15 @@ export default function Quotations() {
                       >
                         <Eye size={15} />
                       </button>
+                      {canManage(q) && (
+                        <button
+                          onClick={() => setSendingId(q.id)}
+                          className="p-1.5 text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          title={q.emails?.length ? "Email again" : "Email to client"}
+                        >
+                          <Mail size={15} />
+                        </button>
+                      )}
                       {canManage(q) && (
                         <button
                           onClick={() => { setEditing(q); setFormOpen(true); }}
@@ -274,12 +295,20 @@ export default function Quotations() {
 
       <QuotationViewModal
         quotation={viewing}
-        open={!!viewing}
+        open={!!viewing && !sending}
         onClose={() => setViewingId(null)}
         organization={organization}
         canManage={viewing ? canManage(viewing) : false}
         onStatusChange={handleStatusChange}
+        onSend={(q) => setSendingId(q.id)}
         busy={updating}
+      />
+
+      <SendQuotationModal
+        quotation={sending}
+        open={!!sending}
+        onClose={() => setSendingId(null)}
+        isAdmin={isAdmin}
       />
 
       <ConfirmDialog

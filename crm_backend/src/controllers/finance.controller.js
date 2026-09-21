@@ -304,6 +304,7 @@ export const getExpenses = asyncHandler(async (req, res) => {
     _id: e._id.toString(),
     title: e.title,
     category: e.category,
+    department: e.department || "",
     amount: e.amount,
     date: e.date,
     notes: e.notes,
@@ -313,17 +314,26 @@ export const getExpenses = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, formatted, "Expenses fetched successfully"));
 });
 
+const assertDepartment = async (department) => {
+  const allowed = await getOptionList("expenseDepartments");
+  if (!allowed.includes(department)) {
+    throw new ApiError(400, `Choose a department. Valid options: ${allowed.join(", ")}`);
+  }
+};
+
 export const createExpense = asyncHandler(async (req, res) => {
-  const { title, category = "Other", amount, date, notes } = req.body;
+  const { title, category = "Other", department, amount, date, notes } = req.body;
 
   const allowedCategories = await getOptionList("expenseCategories");
   if (!allowedCategories.includes(category)) {
     throw new ApiError(400, `Invalid category. Valid options: ${allowedCategories.join(", ")}`);
   }
+  await assertDepartment(department);
 
   const expense = await Expense.create({
     title,
     category,
+    department,
     amount: Number(amount) || 0,
     date: date ? new Date(date) : new Date(),
     notes: notes || "",
@@ -348,7 +358,13 @@ export const updateExpense = asyncHandler(async (req, res) => {
     }
   }
 
-  const allowedFields = ["title", "category", "amount", "date", "notes"];
+  // Only check when it actually changes, so an expense keeps saving after an
+  // admin later removes its department from Settings (or if it never had one).
+  if (req.body.department !== undefined && req.body.department !== (expense.department || "")) {
+    await assertDepartment(req.body.department);
+  }
+
+  const allowedFields = ["title", "category", "department", "amount", "date", "notes"];
   allowedFields.forEach((field) => {
     if (req.body[field] !== undefined) {
       if (field === "date") {

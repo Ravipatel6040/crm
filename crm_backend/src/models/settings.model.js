@@ -27,6 +27,12 @@ export const DEFAULT_OPTIONS = {
   expenseCategories: [
     "Marketing", "Operations", "Salary", "Software", "Travel", "Other",
   ],
+  // Which part of the business an expense belongs to — the Expenses page
+  // breaks spending down by these. Independent of `expenseCategories` (what
+  // kind of cost it is): a "Software" cost can sit under Development or Sales.
+  expenseDepartments: [
+    "Development", "Marketing", "Sales", "Finance", "Day-to-day Office", "Administration",
+  ],
   projectStages: [
     "Planning", "Requirements", "Development", "Testing",
     "Client Review", "Completed", "Delayed",
@@ -71,6 +77,8 @@ const settingsSchema = new mongoose.Schema(
       website: { type: String, trim: true, default: "" },
       address: { type: String, trim: true, default: "" },
       taxId: { type: String, trim: true, default: "" },
+      // Bank / UPI details printed on quotations, e.g. "Bank: HDFC\nA/C: ...\nIFSC: ...".
+      paymentDetails: { type: String, trim: true, default: "" },
     },
 
     locale: {
@@ -87,6 +95,7 @@ const settingsSchema = new mongoose.Schema(
       leadSources: { type: [String], default: () => DEFAULT_OPTIONS.leadSources },
       pipelineStages: { type: [String], default: () => DEFAULT_OPTIONS.pipelineStages },
       expenseCategories: { type: [String], default: () => DEFAULT_OPTIONS.expenseCategories },
+      expenseDepartments: { type: [String], default: () => DEFAULT_OPTIONS.expenseDepartments },
       projectStages: { type: [String], default: () => DEFAULT_OPTIONS.projectStages },
     },
 
@@ -190,7 +199,7 @@ export const getPermissionsForRole = async (role) => {
 
 /**
  * The current allowed values for a configurable dropdown (leadSources,
- * pipelineStages, expenseCategories, projectStages), read from the live
+ * pipelineStages, expenseCategories, expenseDepartments, projectStages), read from the live
  * Settings document. This is what schemas used to hardcode as `enum` — call
  * this from a controller instead of trusting Mongoose to reject bad values,
  * since the schema no longer knows the list and Settings can change it at

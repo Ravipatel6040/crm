@@ -487,7 +487,7 @@ export default function AdminDashboard({ user }) {
                   key={a.label}
                   onClick={() => navigate(a.to)}
                   className={classNames(
-                    "group flex flex-col gap-1.5 rounded-xl border p-4 text-left transition-all duration-150",
+                    "group outline-box flex flex-col gap-1.5 rounded-xl border p-4 text-left transition-all duration-150",
                     "border-slate-200/80 bg-white hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-[0_8px_20px_-10px_rgba(58,86,176,0.35)]",
                     "dark:border-slate-700/60 dark:bg-slate-800/70 dark:hover:border-primary-500/40"
                   )}

@@ -21,7 +21,7 @@ function useChartTheme() {
     tick: isDark ? "#64748b" : "#94a3b8",
     cursor: isDark ? "rgba(148,163,184,0.08)" : "#f1f4fc",
     tooltipBg: isDark ? "#1e293b" : "#ffffff",
-    tooltipBorder: isDark ? "#334155" : "#f1f5f9",
+    tooltipBorder: isDark ? "#334155" : "var(--container-border)",
     tooltipLabel: isDark ? "#e2e8f0" : "#334155",
   };
 }

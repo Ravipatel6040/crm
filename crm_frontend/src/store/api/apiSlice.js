@@ -214,6 +214,22 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/quotations/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Quotation", id: "LIST" }, { type: "ActivityLog", id: "AUDIT" }],
     }),
+    // Pre-filled recipient / subject / message for the Send dialog, and whether
+    // the server has email configured. Always fetched fresh.
+    getQuotationEmailDraft: builder.query({
+      query: (id) => ({ url: `/quotations/${id}/email-draft`, method: "GET" }),
+      keepUnusedDataFor: 0,
+    }),
+    sendQuotation: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/quotations/${id}/send`, method: "POST", data: body }),
+      invalidatesTags: (r, e, { id }) => [
+        { type: "Quotation", id },
+        { type: "Quotation", id: "LIST" },
+        { type: "Communication" },
+        { type: "Lead" },
+        { type: "ActivityLog", id: "AUDIT" },
+      ],
+    }),
 
     // ---------------------------------------------------------------- 6. Projects
     getProjects: builder.query({
@@ -547,6 +563,7 @@ export const {
   useGetAuditLogsQuery, useGetAppSettingsQuery, useUpdateAppSettingsMutation, useResetAppSettingsMutation, useGetTeamPerformanceQuery,
   useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useConvertLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation,
   useGetQuotationsQuery, useCreateQuotationMutation, useUpdateQuotationMutation, useDeleteQuotationMutation,
+  useGetQuotationEmailDraftQuery, useSendQuotationMutation,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,
   useGetProjectsQuery, useGetProjectQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation,
   useGetProjectManagersQuery,

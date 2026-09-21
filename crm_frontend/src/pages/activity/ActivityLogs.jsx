@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ShieldCheck, UserPlus, Pencil, Trash2, LogIn, LogOut, KeyRound,
+  ShieldCheck, UserPlus, Pencil, Trash2, LogIn, LogOut, KeyRound, Send,
   Settings as SettingsIcon, Activity as ActivityIcon,
 } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
@@ -16,7 +16,7 @@ import { useGetAuditLogsQuery, useGetUsersQuery } from "../../store/api/apiSlice
 const EMPTY = [];
 
 const ENTITY_TYPES = ["User", "Lead", "Client", "Project", "Quotation", "Settings", "Auth"];
-const ACTIONS = ["CREATE", "UPDATE", "DELETE", "LOGIN", "PASSWORD_RESET", "FORCE_LOGOUT"];
+const ACTIONS = ["CREATE", "UPDATE", "DELETE", "LOGIN", "PASSWORD_RESET", "FORCE_LOGOUT", "SEND"];
 
 const actionMeta = {
   CREATE: { icon: UserPlus, tone: "green", label: "Created" },
@@ -26,6 +26,7 @@ const actionMeta = {
   LOGOUT: { icon: LogOut, tone: "slate", label: "Signed out" },
   PASSWORD_RESET: { icon: KeyRound, tone: "amber", label: "Password" },
   FORCE_LOGOUT: { icon: LogOut, tone: "amber", label: "Forced out" },
+  SEND: { icon: Send, tone: "blue", label: "Emailed" },
 };
 
 const COLUMNS = ["Who", "Action", "Module", "Detail", "When"];

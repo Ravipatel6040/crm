@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
-import { Plus, Receipt, DollarSign, PieChart, Tag, Pencil, Trash2 } from "lucide-react";
+import { Plus, Receipt, CalendarDays, ListOrdered, Tag, Pencil, Trash2, LayoutGrid } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import {
   Card, Table, Tr, Td, Badge, SearchBar, FilterSelect, Button,
-  Pagination, EmptyState, useToast, LoadingState, ConfirmDialog
+  Pagination, EmptyState, useToast, LoadingState, ConfirmDialog, ProgressBar
 } from "../../components/common";
 import KpiCard from "../../components/dashboard/KpiCard";
 import ExpenseFormModal from "../../components/finance/ExpenseFormModal";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, classNames } from "../../utils/format";
+import { FALLBACK_DEPARTMENTS, UNASSIGNED, departmentMeta } from "../../utils/expenseDepartments";
 import usePagination from "../../hooks/usePagination";
 import {
   useGetExpensesQuery,
@@ -32,24 +33,63 @@ export default function Expenses() {
   const [updateExpense] = useUpdateExpenseMutation();
   const [deleteExpense] = useDeleteExpenseMutation();
 
-  const expenses = expensesData?.data ?? expensesData ?? [];
+  const expenses = useMemo(() => expensesData?.data ?? expensesData ?? [], [expensesData]);
+  const configured = settings.options?.expenseDepartments?.length ? settings.options.expenseDepartments : FALLBACK_DEPARTMENTS;
 
   const [search, setSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState(""); // "" = every department
   const [categoryFilter, setCategoryFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const amountOf = (e) => Number(e.amount) || 0;
+  const deptOf = (e) => e.department || UNASSIGNED;
+
+  // One card per department. A department that was removed from Settings but
+  // still has spending on it keeps its card, and "Unassigned" (expenses that
+  // predate departments) appears only while some exist.
+  const departments = useMemo(() => {
+    const byName = new Map();
+    const add = (name) => byName.has(name) || byName.set(name, { name, total: 0, count: 0 });
+    configured.forEach(add);
+    expenses.forEach((e) => add(deptOf(e)));
+    expenses.forEach((e) => {
+      const d = byName.get(deptOf(e));
+      d.total += amountOf(e);
+      d.count += 1;
+    });
+    const grand = expenses.reduce((sum, e) => sum + amountOf(e), 0);
+    return [...byName.values()]
+      .filter((d) => d.name !== UNASSIGNED || d.count > 0)
+      .map((d) => ({ ...d, share: grand ? Math.round((d.total / grand) * 100) : 0 }));
+  }, [expenses, configured]);
+
+  const grandTotal = useMemo(() => expenses.reduce((sum, e) => sum + amountOf(e), 0), [expenses]);
+
+  // Everything below (KPIs, table) follows the selected department.
+  const scoped = useMemo(
+    () => (deptFilter ? expenses.filter((e) => deptOf(e) === deptFilter) : expenses),
+    [expenses, deptFilter]
+  );
+
   const totals = useMemo(() => {
-    const totalExpenses = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-    const software = expenses.filter((e) => e.category === "Software").reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    const operations = expenses.filter((e) => e.category === "Operations" || e.category === "Salary").reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    const marketing = expenses.filter((e) => e.category === "Marketing").reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    return { totalExpenses, software, operations, marketing };
-  }, [expenses]);
+    const now = new Date();
+    const total = scoped.reduce((sum, e) => sum + amountOf(e), 0);
+    const thisMonth = scoped
+      .filter((e) => {
+        const d = new Date(e.date || e.createdAt);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      })
+      .reduce((sum, e) => sum + amountOf(e), 0);
+    const byCategory = new Map();
+    scoped.forEach((e) => byCategory.set(e.category || "Other", (byCategory.get(e.category || "Other") || 0) + amountOf(e)));
+    const top = [...byCategory.entries()].sort((a, b) => b[1] - a[1])[0];
+    return { total, thisMonth, count: scoped.length, topCategory: top ? top[0] : "—", topAmount: top ? top[1] : 0 };
+  }, [scoped]);
 
   const filtered = useMemo(() => {
-    return expenses.filter((e) => {
+    return scoped.filter((e) => {
       const q = search.toLowerCase();
       const matchesSearch = !search ||
         (e.title && e.title.toLowerCase().includes(q)) ||
@@ -57,7 +97,7 @@ export default function Expenses() {
       const matchesCategory = !categoryFilter || e.category === categoryFilter;
       return matchesSearch && matchesCategory;
     });
-  }, [expenses, search, categoryFilter]);
+  }, [scoped, search, categoryFilter]);
 
   const { page, setPage, totalPages, pageItems, pageSize, totalItems } = usePagination(filtered, 8);
 
@@ -87,6 +127,8 @@ export default function Expenses() {
     }
   };
 
+  const scopeLabel = deptFilter || "All departments";
+
   const getCategoryTone = (cat) => {
     switch (cat) {
       case "Software": return "blue";
@@ -102,7 +144,7 @@ export default function Expenses() {
     <div>
       <PageHeader
         title="Expenses"
-        subtitle="Track and manage organizational expenditures, software subscriptions, and operational costs"
+        subtitle="Spending by department — development, marketing, sales, finance, day-to-day office and administration"
         action={
           <Button icon={Plus} onClick={() => { setEditing(null); setFormOpen(true); }}>
             Record Expense
@@ -110,12 +152,64 @@ export default function Expenses() {
         }
       />
 
-      {/* KPI Cards */}
+      {/* Spending by department — click one to focus the page on it */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 mb-6">
+        <button
+          onClick={() => setDeptFilter("")}
+          className={classNames(
+            "outline-box text-left rounded-xl border p-4 transition-all bg-white dark:bg-slate-800",
+            !deptFilter
+              ? "border-primary-500 ring-2 ring-primary-500/25 dark:border-primary-400"
+              : "border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-slate-600"
+          )}
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300">
+              <LayoutGrid size={16} />
+            </span>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">All departments</span>
+          </div>
+          <p className="mt-3 text-lg font-bold text-slate-900 dark:text-slate-100 tabular-nums">{formatCurrency(grandTotal)}</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">{expenses.length} expense{expenses.length === 1 ? "" : "s"}</p>
+        </button>
+
+        {departments.map((d) => {
+          const m = departmentMeta(d.name);
+          const active = deptFilter === d.name;
+          return (
+            <button
+              key={d.name}
+              onClick={() => setDeptFilter(active ? "" : d.name)}
+              className={classNames(
+                "outline-box text-left rounded-xl border p-4 transition-all bg-white dark:bg-slate-800",
+                active
+                  ? "border-primary-500 ring-2 ring-primary-500/25 dark:border-primary-400"
+                  : "border-slate-200 dark:border-slate-700 hover:border-primary-300 dark:hover:border-slate-600"
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={classNames("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", m.icon)}>
+                  <m.Icon size={16} />
+                </span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{d.name}</span>
+              </div>
+              <p className="mt-3 text-lg font-bold text-slate-900 dark:text-slate-100 tabular-nums">{formatCurrency(d.total)}</p>
+              <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+                <span>{d.count} expense{d.count === 1 ? "" : "s"}</span>
+                <span className="tabular-nums">{d.share}%</span>
+              </div>
+              <ProgressBar value={d.share} className="mt-1.5 !h-1.5" />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* KPI Cards — for the selected department */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KpiCard icon={Receipt} title="Total Expenses" value={formatCurrency(totals.totalExpenses)} tone="red" />
-        <KpiCard icon={DollarSign} title="Software & Cloud" value={formatCurrency(totals.software)} tone="primary" />
-        <KpiCard icon={PieChart} title="Operations & Staff" value={formatCurrency(totals.operations)} tone="amber" />
-        <KpiCard icon={Tag} title="Marketing & Ads" value={formatCurrency(totals.marketing)} tone="green" />
+        <KpiCard icon={Receipt} title={`Total · ${scopeLabel}`} value={formatCurrency(totals.total)} tone="red" />
+        <KpiCard icon={CalendarDays} title="This month" value={formatCurrency(totals.thisMonth)} tone="amber" />
+        <KpiCard icon={ListOrdered} title="Entries" value={totals.count} tone="primary" />
+        <KpiCard icon={Tag} title="Top category" value={totals.topCategory} description={totals.count ? formatCurrency(totals.topAmount) : undefined} tone="green" />
       </div>
 
       <Card padding="p-4 sm:p-5">
@@ -138,8 +232,12 @@ export default function Expenses() {
           <LoadingState label="Loading expenses..." />
         ) : pageItems.length === 0 ? (
           <EmptyState
-            title="No expenses found"
-            description="Record your company's operational or tooling costs to track budget outflows."
+            title={expenses.length === 0 ? "No expenses found" : `No expenses in ${scopeLabel.toLowerCase()}`}
+            description={
+              expenses.length === 0
+                ? "Record your company's operational or tooling costs to track budget outflows."
+                : "Try a different search or category, or pick another department."
+            }
             action={
               <Button icon={Plus} onClick={() => { setEditing(null); setFormOpen(true); }}>
                 Record Expense
@@ -147,11 +245,14 @@ export default function Expenses() {
             }
           />
         ) : (
-          <Table columns={["Expense Title", "Category", "Date", "Amount", "Notes & Reference", "Actions"]}>
+          <Table columns={["Expense Title", "Department", "Category", "Date", "Amount", "Notes & Reference", "Actions"]}>
             {pageItems.map((e) => (
               <Tr key={e.id || e._id}>
                 <Td className="font-bold text-slate-800 dark:text-slate-100">
                   {e.title}
+                </Td>
+                <Td>
+                  <Badge tone={departmentMeta(deptOf(e)).badge}>{deptOf(e)}</Badge>
                 </Td>
                 <Td>
                   <Badge tone={getCategoryTone(e.category)}>
@@ -209,6 +310,7 @@ export default function Expenses() {
         onClose={() => { setFormOpen(false); setEditing(null); }}
         onSave={handleSave}
         initial={editing}
+        defaultDepartment={deptFilter === UNASSIGNED ? "" : deptFilter}
       />
 
       {/* Delete Confirmation */}

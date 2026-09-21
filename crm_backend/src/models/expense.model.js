@@ -13,6 +13,16 @@ const expenseSchema = new mongoose.Schema(
       trim: true,
       default: "Other",
     },
+    // Which department bears the cost. Valid values come from
+    // Settings.options.expenseDepartments, enforced in finance.controller.js.
+    // Expenses recorded before departments existed have none ("") and show up
+    // as "Unassigned" until someone edits them.
+    department: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
     amount: {
       type: Number,
       required: true,

@@ -7,6 +7,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { logAudit } from "../utils/audit.js";
 import { createWithUniqueNumber } from "../utils/createWithUniqueNumber.js";
+import { Activity } from "../models/activity.model.js";
+import { Communication } from "../models/communication.model.js";
+import { getSettings } from "../models/settings.model.js";
+import { buildQuotationPdf } from "../utils/quotationPdf.js";
+import { buildQuotationEmail, defaultSubject, defaultMessage } from "../utils/quotationEmail.js";
+import { isMailConfigured, getFromAddress, sendMail } from "../utils/mailer.js";
 
 const USER_FIELDS = "name email phone designation role";
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -53,6 +59,14 @@ const formatQuotation = (q) => ({
         designation: q.createdBy.designation,
       }
     : null,
+  emails: (q.emails || []).map((e) => ({
+    id: e._id?.toString(),
+    to: e.to,
+    cc: e.cc,
+    subject: e.subject,
+    sentAt: e.sentAt,
+    sentBy: e.sentBy?.name ? { id: e.sentBy._id.toString(), name: e.sentBy.name } : null,
+  })),
   createdAt: q.createdAt,
   updatedAt: q.updatedAt,
 });
@@ -61,6 +75,7 @@ const populateQuotation = (query) =>
   query
     .populate("sentBy", USER_FIELDS)
     .populate("createdBy", USER_FIELDS)
+    .populate("emails.sentBy", "name")
     .populate("lead", "leadId");
 
 // Line items are re-priced here from quantity × rate and the totals derived
@@ -352,4 +367,180 @@ export const deleteQuotation = asyncHandler(async (req, res) => {
   });
 
   return res.status(200).json(new ApiResponse(200, null, "Quotation deleted successfully"));
+});
+
+// ─── Emailing ─────────────────────────────────────────────────────────────────
+
+const EMAIL_RE = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]{2,}$/;
+const MAX_RECIPIENTS = 10;
+
+// Accepts an array or a "a@x.com, b@y.com" string; returns unique lower-cased
+// addresses and throws on the first one that isn't a plausible email.
+const parseEmails = (input, label) => {
+  const list = (Array.isArray(input) ? input : String(input || "").split(/[,;\s]+/))
+    .map((v) => String(v).trim().toLowerCase())
+    .filter(Boolean);
+  const unique = [...new Set(list)];
+  const bad = unique.find((v) => !EMAIL_RE.test(v));
+  if (bad) throw new ApiError(400, `"${bad}" isn't a valid ${label} email address`);
+  return unique;
+};
+
+const pdfFilename = (q) => `Quotation-${String(q.quotationNumber).replace(/[^A-Za-z0-9._-]/g, "_")}.pdf`;
+
+const orgFromSettings = async () => {
+  const settings = await getSettings();
+  const org = settings.organization?.toObject?.() ?? settings.organization ?? {};
+  return org;
+};
+
+const loadFormatted = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) throw new ApiError(400, "Invalid quotation id");
+  const quotation = await populateQuotation(Quotation.findById(id));
+  if (!quotation) throw new ApiError(404, "Quotation not found");
+  return { quotation, formatted: formatQuotation(quotation) };
+};
+
+// ─── GET /api/v1/quotations/:id/pdf ───────────────────────────────────────────
+export const getQuotationPdf = asyncHandler(async (req, res) => {
+  const { formatted } = await loadFormatted(req.params.id);
+  const org = await orgFromSettings();
+
+  const pdf = buildQuotationPdf(formatted, org, { draft: formatted.status === "Draft" });
+
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Length": pdf.length,
+    "Content-Disposition": `attachment; filename="${pdfFilename(formatted)}"`,
+    "Cache-Control": "no-store",
+  });
+  return res.status(200).send(pdf);
+});
+
+// ─── GET /api/v1/quotations/:id/email-draft ───────────────────────────────────
+// What the "Send" dialog opens with: recipient, subject and message, plus
+// whether the server can send email at all.
+export const getQuotationEmailDraft = asyncHandler(async (req, res) => {
+  const { formatted } = await loadFormatted(req.params.id);
+  const org = await orgFromSettings();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        configured: isMailConfigured(),
+        from: getFromAddress(),
+        replyTo: req.user.email || "",
+        to: formatted.recipientEmail || "",
+        subject: defaultSubject(formatted, org.name),
+        message: defaultMessage(formatted, req.user, org.name),
+        filename: pdfFilename(formatted),
+      },
+      "Email draft ready"
+    )
+  );
+});
+
+// ─── POST /api/v1/quotations/:id/send ─────────────────────────────────────────
+export const sendQuotation = asyncHandler(async (req, res) => {
+  const { quotation, formatted } = await loadFormatted(req.params.id);
+
+  if (!isOwnerOrAdmin(quotation, req.user)) {
+    throw new ApiError(403, "You can only send quotations you created");
+  }
+
+  const to = parseEmails(req.body.to || formatted.recipientEmail, "recipient");
+  if (to.length === 0) {
+    throw new ApiError(400, "Add at least one recipient email address");
+  }
+  const cc = parseEmails(req.body.cc, "CC").filter((a) => !to.includes(a));
+  if (to.length + cc.length > MAX_RECIPIENTS) {
+    throw new ApiError(400, `You can send to at most ${MAX_RECIPIENTS} addresses at once`);
+  }
+
+  const org = await orgFromSettings();
+  const subject = String(req.body.subject || "").trim() || defaultSubject(formatted, org.name);
+  const message = String(req.body.message || "").trim() || defaultMessage(formatted, req.user, org.name);
+  if (subject.length > 200) throw new ApiError(400, "Subject is too long (200 characters max)");
+  if (message.length > 5000) throw new ApiError(400, "Message is too long (5000 characters max)");
+
+  // A draft becomes "Sent" by this very email, so the PDF should already name
+  // the sender rather than say "Prepared by" and carry the DRAFT watermark.
+  const willBeSent = quotation.status === "Draft";
+  const sender = {
+    id: req.user._id.toString(),
+    name: req.user.name,
+    email: req.user.email,
+    phone: req.user.phone,
+    designation: req.user.designation,
+  };
+  const pdfInput = willBeSent ? { ...formatted, status: "Sent", sentBy: sender } : formatted;
+  const pdf = buildQuotationPdf(pdfInput, org, { draft: false });
+  const filename = pdfFilename(formatted);
+
+  const { html, text } = buildQuotationEmail({ quotation: formatted, message, sender, org });
+
+  // Throws an ApiError with a UI-friendly message if delivery fails; nothing
+  // below runs in that case, so a failed send never marks the quotation sent.
+  const result = await sendMail({
+    to,
+    cc,
+    subject,
+    text,
+    html,
+    replyTo: req.user.email,
+    fromName: `${req.user.name} | ${org.name || "CRM Gangatara"}`,
+    attachments: [{ filename, content: pdf, contentType: "application/pdf" }],
+  });
+
+  quotation.emails.push({
+    to,
+    cc,
+    subject,
+    message,
+    filename,
+    messageId: result.messageId || "",
+    sentBy: req.user._id,
+    sentAt: new Date(),
+  });
+  if (willBeSent) quotation.status = "Sent";
+  if (!quotation.sentAt) {
+    quotation.sentBy = req.user._id;
+    quotation.sentAt = new Date();
+  }
+  await quotation.save();
+
+  const recipients = [...to, ...cc].join(", ");
+  await logAudit(req, {
+    entityType: "Quotation",
+    entityId: quotation._id,
+    entityLabel: quotation.quotationNumber,
+    action: "SEND",
+    content: `Emailed quotation ${quotation.quotationNumber} (Rs. ${quotation.total.toLocaleString("en-IN")}) to ${recipients}`,
+  });
+
+  // Mirror it on the client's / lead's own history. Best-effort: the email is
+  // already out, so a logging hiccup must not turn this into an error response.
+  try {
+    const summary = `Emailed quotation ${quotation.quotationNumber} "${quotation.title}" (Rs. ${quotation.total.toLocaleString("en-IN")}) to ${recipients}`;
+    if (quotation.recipientType === "Client" && quotation.client) {
+      await Communication.create({ client: quotation.client, type: "Email", summary, loggedBy: req.user._id });
+    } else if (quotation.recipientType === "Lead" && quotation.lead) {
+      await Activity.create({ leadId: quotation.lead, type: "Email", content: summary, createdBy: req.user._id });
+    }
+  } catch (err) {
+    console.error("Could not log quotation email to recipient history:", err.message);
+  }
+
+  const populated = await populateQuotation(Quotation.findById(quotation._id));
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        quotation: formatQuotation(populated),
+        rejected: result.rejected,
+      },
+      `Quotation emailed to ${recipients}`
+    )
+  );
 });
