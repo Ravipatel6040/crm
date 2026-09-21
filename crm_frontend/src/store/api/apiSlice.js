@@ -16,7 +16,7 @@ export const apiSlice = createApi({
   baseQuery: axiosBaseQuery(),
   tagTypes: [
     "Auth", "User", "Lead", "Client", "Project", "Task", "Requirement", "Payment", "Invoice", "Expense",
-    "Campaign", "LeadSource", "Communication", "Document", "Notification",
+    "Campaign", "LeadSource", "Communication", "Document", "Notification", "Quotation",
     "ActivityLog", "Report", "Dashboard", "Product", "Service", "Settings",
   ],
   endpoints: (builder) => ({
@@ -192,6 +192,27 @@ export const apiSlice = createApi({
     deleteClient: builder.mutation({
       query: (id) => ({ url: `/clients/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Client", id: "LIST" }, "Dashboard"],
+    }),
+
+    // ---------------------------------------------------------------- 5c. Quotations
+    getQuotations: builder.query({
+      query: (params) => ({ url: "/quotations", method: "GET", params }),
+      providesTags: (result) =>
+        result
+          ? [...(result.data ?? result).map((q) => ({ type: "Quotation", id: q.id })), { type: "Quotation", id: "LIST" }]
+          : [{ type: "Quotation", id: "LIST" }],
+    }),
+    createQuotation: builder.mutation({
+      query: (body) => ({ url: "/quotations", method: "POST", data: body }),
+      invalidatesTags: [{ type: "Quotation", id: "LIST" }, { type: "ActivityLog", id: "AUDIT" }],
+    }),
+    updateQuotation: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/quotations/${id}`, method: "PATCH", data: body }),
+      invalidatesTags: (r, e, { id }) => [{ type: "Quotation", id }, { type: "Quotation", id: "LIST" }, { type: "ActivityLog", id: "AUDIT" }],
+    }),
+    deleteQuotation: builder.mutation({
+      query: (id) => ({ url: `/quotations/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Quotation", id: "LIST" }, { type: "ActivityLog", id: "AUDIT" }],
     }),
 
     // ---------------------------------------------------------------- 6. Projects
@@ -525,6 +546,7 @@ export const {
   useGetUserWorkloadQuery, useForceLogoutUserMutation,
   useGetAuditLogsQuery, useGetAppSettingsQuery, useUpdateAppSettingsMutation, useResetAppSettingsMutation, useGetTeamPerformanceQuery,
   useGetLeadsQuery, useGetLeadQuery, useCreateLeadMutation, useUpdateLeadMutation, useAssignLeadMutation, useDeleteLeadMutation, useConvertLeadMutation, useGetLeadSourcesQuery, useGetLeadActivitiesQuery, useCreateLeadActivityMutation, useUpdateLeadActivityMutation, useDeleteLeadActivityMutation,
+  useGetQuotationsQuery, useCreateQuotationMutation, useUpdateQuotationMutation, useDeleteQuotationMutation,
   useGetClientsQuery, useGetClientQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation,
   useGetProjectsQuery, useGetProjectQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation,
   useGetProjectManagersQuery,

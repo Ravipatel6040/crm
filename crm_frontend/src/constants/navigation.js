@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Building2, FolderKanban, CheckSquare, ListChecks,
+  LayoutDashboard, Users, Building2, FolderKanban, /* CheckSquare (Tasks — hidden), */ ListChecks, ScrollText,
   CreditCard, BarChart3, Megaphone, Radio, LineChart, MessageSquare,
   FileText, ClipboardList, Settings, UserCog,
   Clock, Receipt
@@ -13,7 +13,8 @@ export const NAV_SECTIONS = [
       { key: "leads", label: "Leads", to: "/leads", icon: Users },
       { key: "clients", label: "Clients", to: "/clients", icon: Building2 },
       { key: "projects", label: "Projects", to: "/projects", icon: FolderKanban },
-      { key: "tasks", label: "Tasks", to: "/tasks", icon: CheckSquare },
+      // Tasks module hidden
+      // { key: "tasks", label: "Tasks", to: "/tasks", icon: CheckSquare },
       { key: "requirements", label: "Requirements", to: "/requirements", icon: ListChecks },
       { key: "finance", label: "Finance", to: "/finance", icon: CreditCard },
       { key: "reports", label: "Reports", to: "/reports", icon: BarChart3 },
@@ -25,6 +26,7 @@ export const NAV_SECTIONS = [
     title: "Sales",
     items: [
       { key: "follow_ups", label: "Follow-ups", to: "/follow-ups", icon: Clock },
+      { key: "quotations", label: "Quotations", to: "/quotations", icon: ScrollText },
       { key: "calls", label: "Calls", to: "/communication", icon: MessageSquare },
     ],
   },

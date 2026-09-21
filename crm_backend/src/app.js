@@ -36,6 +36,7 @@ import { settingsRoutes } from "./routes/settings.routes.js";
 import { invoiceRouter, paymentRouter, expenseRouter } from "./routes/finance.routes.js";
 import { documentRoutes } from "./routes/document.routes.js";
 import { communicationRoutes } from "./routes/communication.routes.js";
+import { quotationRoutes } from "./routes/quotation.routes.js";
 
 // Home
 app.get("/", (req, res) => res.json({ msg: "CRM API is running" }));
@@ -58,6 +59,7 @@ app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/expenses", expenseRouter);
 app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/communications", communicationRoutes);
+app.use("/api/v1/quotations", quotationRoutes);
 
 
 

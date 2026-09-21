@@ -15,7 +15,9 @@ import Clients from "./pages/clients/Clients";
 import ClientDetail from "./pages/clients/ClientDetail";
 import Projects from "./pages/projects/Projects";
 import ProjectDetail from "./pages/projects/ProjectDetail";
-import Tasks from "./pages/projects/Tasks";
+// Tasks module hidden — uncomment this import, the /tasks route below, the sidebar
+// item in constants/navigation.js, and the routes in crm_backend project.routes.js to restore.
+// import Tasks from "./pages/projects/Tasks";
 import Requirements from "./pages/projects/Requirements";
 import Invoices from "./pages/invoices/Invoices";
 import Payments from "./pages/payments/Payments";
@@ -25,6 +27,7 @@ import LeadSources from "./pages/marketing/LeadSources";
 import Communication from "./pages/communication/Communication";
 import FollowUps from "./pages/followups/FollowUps";
 import Documents from "./pages/documents/Documents";
+import Quotations from "./pages/quotations/Quotations";
 import Reports from "./pages/reports/Reports";
 import Notifications from "./pages/notifications/Notifications";
 import Profile from "./pages/settings/Profile";
@@ -73,7 +76,9 @@ export default function App() {
               <Route path="/projects" element={<Protected routeKey="projects"><Projects /></Protected>} />
               <Route path="/projects/:id" element={<Protected routeKey="projects"><ProjectDetail /></Protected>} />
               <Route path="/requirements" element={<Protected routeKey="requirements"><Requirements /></Protected>} />
+              {/* Tasks module hidden
               <Route path="/tasks" element={<Protected routeKey="tasks"><Tasks /></Protected>} />
+              */}
 
               <Route path="/marketing" element={<Navigate to="/marketing/campaigns" replace />} />
               <Route path="/marketing/dashboard" element={<Navigate to="/marketing/campaigns" replace />} />
@@ -86,6 +91,7 @@ export default function App() {
               <Route path="/payments" element={<Protected routeKey="payments"><Payments /></Protected>} />
               <Route path="/expenses" element={<Protected routeKey="expenses"><Expenses /></Protected>} />
 
+              <Route path="/quotations" element={<Protected routeKey="quotations"><Quotations /></Protected>} />
               <Route path="/reports" element={<Protected routeKey="reports"><Reports /></Protected>} />
               <Route path="/communication" element={<Protected routeKey="calls"><Communication /></Protected>} />
               <Route path="/documents" element={<Protected routeKey="documents"><Documents /></Protected>} />

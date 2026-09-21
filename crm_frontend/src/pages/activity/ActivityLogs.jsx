@@ -15,7 +15,7 @@ import { useGetAuditLogsQuery, useGetUsersQuery } from "../../store/api/apiSlice
 // Stable identity so useMemo deps don't churn while a query is loading.
 const EMPTY = [];
 
-const ENTITY_TYPES = ["User", "Lead", "Client", "Project", "Settings", "Auth"];
+const ENTITY_TYPES = ["User", "Lead", "Client", "Project", "Quotation", "Settings", "Auth"];
 const ACTIONS = ["CREATE", "UPDATE", "DELETE", "LOGIN", "PASSWORD_RESET", "FORCE_LOGOUT"];
 
 const actionMeta = {

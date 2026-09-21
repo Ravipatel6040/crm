@@ -29,7 +29,7 @@ export const ROLE_ACCESS = {
   [ROLES.ADMIN]: ["*"],
   [ROLES.SALES]: [
     "dashboard", "sales", "leads", "my_leads", "follow_ups", "calls",
-    "clients", "projects", "documents", "reports", "settings",
+    "clients", "projects", "documents", "quotations", "reports", "settings",
   ],
   [ROLES.MARKETING]: [
     "dashboard", "marketing", "campaigns", "lead_sources", "analytics",

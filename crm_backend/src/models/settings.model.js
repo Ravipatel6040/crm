@@ -37,7 +37,7 @@ export const DEFAULT_PERMISSIONS = {
   ADMIN: ["*"],
   BD_SALES: [
     "dashboard", "sales", "leads", "my_leads", "follow_ups", "calls",
-    "clients", "projects", "documents", "reports", "settings",
+    "clients", "projects", "documents", "quotations", "reports", "settings",
   ],
   MARKETING: [
     "dashboard", "marketing", "campaigns", "lead_sources", "analytics",
@@ -103,6 +103,9 @@ const settingsSchema = new mongoose.Schema(
       notifyOnDealWon: { type: Boolean, default: true },
     },
 
+    // Ids of the PERMISSION_MIGRATIONS below already applied to this document.
+    appliedMigrations: { type: [String], default: [] },
+
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -115,6 +118,49 @@ const settingsSchema = new mongoose.Schema(
 export const Settings = mongoose.model("Settings", settingsSchema);
 
 /**
+ * The permission matrix is stored in the database the first time Settings is
+ * read, so a route key added to DEFAULT_PERMISSIONS later never reaches an
+ * existing document — non-admin roles would silently not see the new module.
+ * Each entry here is applied to an existing document exactly once (tracked in
+ * `appliedMigrations`), so it can't re-add a key an admin has since removed in
+ * Settings → Permissions. Add a new entry whenever a new route key ships.
+ */
+const PERMISSION_MIGRATIONS = [
+  {
+    id: "2026-09-16-documents-requirements",
+    add: {
+      BD_SALES: ["documents"],
+      PROJECT_MANAGER: ["requirements", "documents"],
+      FINANCE: ["documents"],
+    },
+  },
+  {
+    id: "2026-09-21-quotations",
+    add: { BD_SALES: ["quotations"] },
+  },
+];
+
+const applyPermissionMigrations = async (settings) => {
+  const pending = PERMISSION_MIGRATIONS.filter((m) => !settings.appliedMigrations.includes(m.id));
+  if (pending.length === 0) return;
+
+  const matrix = { ...(settings.permissions || {}) };
+  for (const migration of pending) {
+    for (const [role, keys] of Object.entries(migration.add)) {
+      const current = matrix[role] || [];
+      // "*" already covers everything.
+      if (current.includes("*")) continue;
+      matrix[role] = [...current, ...keys.filter((k) => !current.includes(k))];
+    }
+    settings.appliedMigrations.push(migration.id);
+  }
+
+  settings.permissions = matrix;
+  settings.markModified("permissions");
+  await settings.save();
+};
+
+/**
  * Returns the singleton settings document, creating it on first access so
  * every caller can assume it exists.
  */
@@ -123,6 +169,7 @@ export const getSettings = async () => {
   if (!settings) {
     settings = await Settings.create({ key: "GLOBAL" });
   }
+  await applyPermissionMigrations(settings);
   return settings;
 };
 

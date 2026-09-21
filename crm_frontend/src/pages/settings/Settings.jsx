@@ -20,7 +20,7 @@ import {
 // Route keys the permission matrix can grant. Mirrors constants/navigation.js.
 const ROUTE_KEYS = [
   "dashboard", "leads", "my_leads", "follow_ups", "calls", "clients",
-  "projects", "tasks", "requirements", "documents",
+  "projects", /* "tasks" (module hidden), */ "requirements", "documents", "quotations",
   "marketing", "campaigns", "lead_sources", "analytics",
   "finance", "invoices", "payments", "expenses", "revenue",
   "reports", "audit", "team", "settings",

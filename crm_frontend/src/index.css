@@ -18,6 +18,30 @@ body {
 ::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-700 rounded-full; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400 dark:bg-slate-600; }
 
+/*
+ * Light theme: container boxes get a blue outline.
+ *
+ * Cards, KPI tiles, table wrappers, popovers etc. are all `div`s that carry an
+ * all-sides `border` in a faint slate. Rather than editing that class on every
+ * one of them, this recolours those boxes in one place. Only all-sides borders
+ * match (`.border` / `.border-2`), so single-side dividers (modal headers and
+ * footers, the navbar underline, the sidebar edge, table row lines) and form
+ * fields stay neutral. Dark mode is untouched: the rule only applies while
+ * `html` lacks the `dark` class. Change the shade here.
+ */
+:root { --container-border: #6480cf; } /* primary-400 */
+
+html:not(.dark) :is(div, section, aside, article):is(.border, .border-2):is(
+  .border-slate-50,
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300,
+  .border-slate-200\/60,
+  .border-slate-200\/80
+) {
+  border-color: var(--container-border);
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
