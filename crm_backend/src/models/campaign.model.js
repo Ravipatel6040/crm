@@ -87,6 +87,25 @@ const campaignSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // Where this campaign's row came from. "Meta" rows are linked to a real
+    // Meta Ads campaign (externalId) and have their spend/status/budget kept
+    // in step by the sync endpoints instead of being edited by hand.
+    source: {
+      type: String,
+      enum: ["Manual", "Meta"],
+      default: "Manual",
+    },
+    externalId: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+    lastSyncedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

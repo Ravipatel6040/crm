@@ -17,7 +17,7 @@ export const apiSlice = createApi({
   tagTypes: [
     "Auth", "User", "Lead", "Client", "Project", "Task", "Requirement", "Payment", "Invoice", "Expense",
     "Campaign", "LeadSource", "Communication", "Document", "Notification", "Quotation",
-    "ActivityLog", "Report", "Dashboard", "Product", "Service", "Settings",
+    "ActivityLog", "Report", "Dashboard", "Product", "Service", "Settings", "MetaStatus",
   ],
   endpoints: (builder) => ({
     // ---------------------------------------------------------------- 1. Auth
@@ -390,6 +390,22 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/marketing/campaigns/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Campaign", id: "LIST" }],
     }),
+    // Meta (Facebook/Instagram) Ads
+    getMetaStatus: builder.query({
+      query: () => ({ url: "/marketing/meta/status", method: "GET" }),
+      providesTags: ["MetaStatus"],
+    }),
+    getMetaCampaigns: builder.query({
+      query: () => ({ url: "/marketing/meta/campaigns", method: "GET" }),
+    }),
+    importMetaCampaign: builder.mutation({
+      query: (externalId) => ({ url: `/marketing/meta/campaigns/${externalId}/import`, method: "POST" }),
+      invalidatesTags: [{ type: "Campaign", id: "LIST" }, "MetaStatus"],
+    }),
+    syncMetaCampaigns: builder.mutation({
+      query: () => ({ url: "/marketing/meta/sync", method: "POST" }),
+      invalidatesTags: [{ type: "Campaign", id: "LIST" }, "MetaStatus"],
+    }),
     getMarketingLeadSources: builder.query({
       query: () => ({ url: "/marketing/lead-sources", method: "GET" }),
       providesTags: [{ type: "LeadSource", id: "LIST" }],
@@ -573,6 +589,7 @@ export const {
   useGetInvoicesQuery, useGetInvoiceQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation,
   useGetExpensesQuery, useCreateExpenseMutation, useUpdateExpenseMutation, useDeleteExpenseMutation,
   useGetCampaignsQuery, useCreateCampaignMutation, useUpdateCampaignMutation, useDeleteCampaignMutation,
+  useGetMetaStatusQuery, useGetMetaCampaignsQuery, useImportMetaCampaignMutation, useSyncMetaCampaignsMutation,
   useGetMarketingLeadSourcesQuery, useGetMarketingTrendQuery, useGetChannelEffectivenessQuery,
   useGetCommunicationsQuery, useCreateCommunicationMutation, useDeleteCommunicationMutation,
   useGetDocumentsQuery, useUploadDocumentMutation, useDeleteDocumentMutation,

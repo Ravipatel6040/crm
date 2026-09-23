@@ -7,8 +7,11 @@ import {
   EmptyState, ProgressBar, useToast, LoadingState, Pagination
 } from "../../components/common";
 import CampaignFormModal from "../../components/campaigns/CampaignFormModal";
+import MetaAdsPanel from "../../components/marketing/MetaAdsPanel";
 import KpiCard from "../../components/dashboard/KpiCard";
 import { formatCurrency, formatDate } from "../../utils/format";
+import { useAuth } from "../../context/AuthContext";
+import { ROLES } from "../../constants/roles";
 import {
   useGetCampaignsQuery,
   useCreateCampaignMutation,
@@ -18,6 +21,8 @@ import {
 
 export default function Campaigns() {
   const toast = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === ROLES.ADMIN;
   const [searchParams] = useSearchParams();
   
   // RTK Query Hooks
@@ -97,6 +102,8 @@ export default function Campaigns() {
         action={<Button icon={Plus} onClick={() => { setEditing(null); setModalOpen(true); }}>New Campaign</Button>}
       />
 
+      <MetaAdsPanel isAdmin={isAdmin} />
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard icon={IndianRupee} title="Total Budget" value={formatCurrency(totals.budget)} tone="primary" />
         <KpiCard icon={TrendingUp} title="Total Spend" value={formatCurrency(totals.spend)} tone="amber" />
@@ -112,12 +119,24 @@ export default function Campaigns() {
           <EmptyState title="No campaigns found" />
         ) : (
           <>
-            <Table columns={["Campaign", "Platform", "Duration", "Budget", "Spend", "Leads", "Qualified", "Won", "Revenue", "ROI", "Actions"]}>
+            <Table columns={["Campaign", "Source", "Platform", "Duration", "Budget", "Spend", "Leads", "Qualified", "Won", "Revenue", "ROI", "Actions"]}>
             {paginated.map((c) => {
               const roi = c.spend > 0 ? (((c.revenue - c.spend) / c.spend) * 100).toFixed(0) : 0;
               return (
                 <Tr key={c.id || c._id}>
-                  <Td className="font-medium text-slate-700">{c.name}</Td>
+                  <Td className="font-medium text-slate-700">
+                    {c.name}
+                    {c.source === "Meta" && c.lastSyncedAt && (
+                      <span className="block text-[11px] font-normal text-slate-400 mt-0.5">
+                        Synced {formatDate(c.lastSyncedAt)}
+                      </span>
+                    )}
+                  </Td>
+                  <Td>
+                    {c.source === "Meta"
+                      ? <Badge tone="primary">Meta Ads</Badge>
+                      : <Badge tone="slate">Manual</Badge>}
+                  </Td>
                   <Td><Badge tone="slate">{c.platform}</Badge></Td>
                   <Td className="text-xs">{formatDate(c.startDate)} – {formatDate(c.endDate)}</Td>
                   <Td>{formatCurrency(c.budget)}</Td>

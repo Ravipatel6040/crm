@@ -6,7 +6,11 @@ import {
   deleteCampaign,
   getMarketingLeadSources,
   getMarketingTrend,
-  getChannelEffectiveness
+  getChannelEffectiveness,
+  getMetaStatus,
+  listMetaCampaigns,
+  importMetaCampaign,
+  syncMetaCampaigns,
 } from "../controllers/marketing.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.middleware.js";
 
@@ -27,5 +31,12 @@ router.get("/lead-sources", authorizeRoles("ADMIN", "MARKETING"), getMarketingLe
 // Analytics
 router.get("/analytics/trend", authorizeRoles("ADMIN", "MARKETING"), getMarketingTrend);
 router.get("/analytics/channel-effectiveness", authorizeRoles("ADMIN", "MARKETING"), getChannelEffectiveness);
+
+// Meta (Facebook/Instagram) Ads — read-only status/listing, write only to
+// import or re-sync a linked row (never to edit ad spend by hand).
+router.get("/meta/status", authorizeRoles("ADMIN", "MARKETING"), getMetaStatus);
+router.get("/meta/campaigns", authorizeRoles("ADMIN", "MARKETING"), listMetaCampaigns);
+router.post("/meta/campaigns/:externalId/import", authorizeRoles("ADMIN", "MARKETING"), importMetaCampaign);
+router.post("/meta/sync", authorizeRoles("ADMIN", "MARKETING"), syncMetaCampaigns);
 
 export { router as marketingRoutes };

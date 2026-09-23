@@ -4,6 +4,16 @@ import { Lead } from "../models/lead.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { logAudit } from "../utils/audit.js";
+import {
+  isMetaConfigured,
+  getTokenInfo,
+  listAdAccountCampaigns,
+  getCampaign,
+  getCampaignInsights,
+  mapStatus,
+  centsToAmount,
+} from "../utils/metaAds.js";
 
 const formatCampaign = (c) => ({
   id: c._id.toString(),
@@ -28,6 +38,9 @@ const formatCampaign = (c) => ({
   owner: c.owner,
   imageUrl: c.imageUrl || "",
   videoUrl: c.videoUrl || "",
+  source: c.source || "Manual",
+  externalId: c.externalId || "",
+  lastSyncedAt: c.lastSyncedAt || null,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });
@@ -132,6 +145,12 @@ export const updateCampaign = asyncHandler(async (req, res) => {
   }
 
   const updateData = { ...req.body };
+  // `source`/`externalId`/`lastSyncedAt` are only ever set by the Meta import
+  // and sync endpoints below — never by hand, so a manual edit can't
+  // accidentally relink (or unlink) a row from a real Meta campaign.
+  delete updateData.source;
+  delete updateData.externalId;
+  delete updateData.lastSyncedAt;
   if (updateData.name) updateData.name = updateData.name.trim();
   if (updateData.budget !== undefined) updateData.budget = Number(updateData.budget) || 0;
   if (updateData.spend !== undefined) updateData.spend = Number(updateData.spend) || 0;
@@ -282,4 +301,163 @@ export const getChannelEffectiveness = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, channels, "Channel effectiveness fetched")
   );
+});
+
+// ─── Meta (Facebook/Instagram) Ads integration ────────────────────────────────
+
+// ─── GET /api/v1/marketing/meta/status ────────────────────────────────────────
+// Health check the frontend polls before offering the import/sync UI. Never
+// throws — a partial failure (e.g. an expired token) is diagnostic info, not
+// an error response, since the page still has manual campaigns to show.
+export const getMetaStatus = asyncHandler(async (req, res) => {
+  if (!isMetaConfigured()) {
+    return res.status(200).json(
+      new ApiResponse(200, { configured: false }, "Meta Ads is not configured")
+    );
+  }
+
+  const info = await getTokenInfo();
+  const importedCount = await Campaign.countDocuments({ source: "Meta" });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        configured: true,
+        tokenValid: info.tokenValid,
+        hasAdsAccess: info.hasAdsAccess,
+        missingPermission: info.missingPermission,
+        scopes: info.scopes,
+        account: info.account
+          ? {
+              id: info.account.id,
+              name: info.account.name,
+              currency: info.account.currency,
+              status: info.account.account_status,
+              amountSpent: centsToAmount(info.account.amount_spent),
+            }
+          : null,
+        accountError: info.accountError,
+        permissionsError: info.permissionsError,
+        importedCount,
+      },
+      "Meta Ads status"
+    )
+  );
+});
+
+// ─── GET /api/v1/marketing/meta/campaigns ─────────────────────────────────────
+// Live campaigns from the ad account, each flagged with whether it's already
+// linked to a local Campaign row.
+export const listMetaCampaigns = asyncHandler(async (req, res) => {
+  const [remote, imported] = await Promise.all([
+    listAdAccountCampaigns(),
+    Campaign.find({ source: "Meta" }, "externalId"),
+  ]);
+  const importedIds = new Set(imported.map((c) => c.externalId));
+
+  const campaigns = remote.map((c) => ({
+    externalId: c.id,
+    name: c.name,
+    status: mapStatus(c.effective_status),
+    objective: c.objective || "",
+    dailyBudget: centsToAmount(c.daily_budget),
+    lifetimeBudget: centsToAmount(c.lifetime_budget),
+    startDate: c.start_time || null,
+    endDate: c.stop_time || null,
+    imported: importedIds.has(c.id),
+  }));
+
+  return res.status(200).json(new ApiResponse(200, campaigns, "Meta campaigns fetched"));
+});
+
+// Builds the fields synced from Meta — used by both import and re-sync so
+// the two never drift apart.
+const pullMetaCampaignData = async (externalId) => {
+  const [remote, insights] = await Promise.all([
+    getCampaign(externalId),
+    getCampaignInsights(externalId),
+  ]);
+  const budget = centsToAmount(remote.daily_budget)
+    ? centsToAmount(remote.daily_budget) * 30
+    : centsToAmount(remote.lifetime_budget);
+
+  return {
+    name: remote.name,
+    status: mapStatus(remote.effective_status),
+    budget,
+    spend: insights.spend,
+    startDate: remote.start_time ? new Date(remote.start_time) : new Date(),
+    endDate: remote.stop_time ? new Date(remote.stop_time) : null,
+  };
+};
+
+// ─── POST /api/v1/marketing/meta/campaigns/:externalId/import ────────────────
+// Creates (or re-links) a local Campaign row from a Meta campaign. Lead-funnel
+// numbers (leads/qualified/proposals/won/revenue) are the CRM's own and are
+// left at 0 / untouched — only ad-side facts (name/status/budget/spend) come
+// from Meta.
+export const importMetaCampaign = asyncHandler(async (req, res) => {
+  const { externalId } = req.params;
+  const existing = await Campaign.findOne({ source: "Meta", externalId });
+  const data = await pullMetaCampaignData(externalId);
+
+  let campaign;
+  if (existing) {
+    Object.assign(existing, data, { lastSyncedAt: new Date() });
+    campaign = await existing.save();
+  } else {
+    campaign = await Campaign.create({
+      ...data,
+      platform: "Meta Ads",
+      source: "Meta",
+      externalId,
+      owner: req.user?._id || null,
+      lastSyncedAt: new Date(),
+    });
+    await logAudit(req, {
+      entityType: "Campaign",
+      entityId: campaign._id,
+      entityLabel: campaign.name,
+      action: "CREATE",
+      content: `Imported Meta Ads campaign "${campaign.name}" (${externalId})`,
+    });
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, formatCampaign(campaign), existing ? "Campaign re-linked" : "Campaign imported")
+  );
+});
+
+// ─── POST /api/v1/marketing/meta/sync ─────────────────────────────────────────
+// Refreshes every already-imported Meta campaign's spend/status/budget in one
+// go. Tolerant of per-campaign failures (e.g. one campaign was deleted on
+// Meta's side) — those are reported, not thrown, so the rest still sync.
+export const syncMetaCampaigns = asyncHandler(async (req, res) => {
+  const campaigns = await Campaign.find({ source: "Meta" });
+  if (campaigns.length === 0) {
+    return res.status(200).json(new ApiResponse(200, { synced: 0, failed: [] }, "No Meta campaigns to sync"));
+  }
+
+  const failed = [];
+  let synced = 0;
+  for (const campaign of campaigns) {
+    try {
+      const data = await pullMetaCampaignData(campaign.externalId);
+      Object.assign(campaign, data, { lastSyncedAt: new Date() });
+      await campaign.save();
+      synced += 1;
+    } catch (err) {
+      failed.push({ id: campaign._id.toString(), name: campaign.name, error: err.message });
+    }
+  }
+
+  await logAudit(req, {
+    entityType: "Campaign",
+    entityLabel: "Meta Ads",
+    action: "UPDATE",
+    content: `Synced ${synced} of ${campaigns.length} Meta Ads campaign${campaigns.length === 1 ? "" : "s"}${failed.length ? ` (${failed.length} failed)` : ""}`,
+  });
+
+  return res.status(200).json(new ApiResponse(200, { synced, failed }, "Meta campaigns synced"));
 });
